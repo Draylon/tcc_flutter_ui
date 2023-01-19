@@ -36,7 +36,7 @@ class _ExibitCardState extends State<ExibitCard>{
       elevation: 3,
       shadowColor: Colors.black54,
       borderOnForeground: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
       child: InkWell(
         onTap: ()=>widget.action ?? {ScaffoldMessenger.of(context).showSnackBar(defaultFunction)},
           //ScaffoldMessenger.of(context).showSnackBar();
@@ -122,7 +122,7 @@ class ExibitCards{
     within_city.length>3?within_city.removeRange(3,within_city.length):null;
     nearby_cities.length>3?nearby_cities.removeRange(3,nearby_cities.length):null;
 
-    Image loaded = Image.network("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIx5jou3We5US_EAXkxo1tIN-9AJGpeo_X9Q&usqp=CAU");
+    const Image loaded = Image(image: AssetImage("assets/logo2.png"));
     tags.forEach((element) {
       _list.add(ExibitCard(parentContext: context,title: "Visita à $element", description: "Conferir as condições de $element da região", img: loaded,action: () async {
         await Navigator.push(context,
@@ -160,14 +160,14 @@ class ExibitCards{
 
     int append_defaults = 1;// 2° elemento
     List<ExibitCard> default_topics = [
-      ExibitCard(parentContext: context,title: "Mapa Regional", description:"Mapa interativo da região", img: Image(image: AssetImage("assets/logo2.png"),),action: () async {
+      ExibitCard(parentContext: context,title: "Mapa Regional", description:"Mapa interativo da região", img: const Image(image: AssetImage("assets/logo2.png"),),action: () async {
 
         await Navigator.push(context,
             MaterialPageRoute(builder: (BuildContext c) {
               return PageMap(title: "Page Title");
             }));
       },),
-      ExibitCard(parentContext: context,title: "Busque um local", description:"", img: Image(image: AssetImage("assets/logo1.png"),),),
+      ExibitCard(parentContext: context,title: "Busque um local", description:"", img: const Image(image: AssetImage("assets/logo1.png"),),),
     ];
     default_topics.forEach((element) {
       if(_list.length>append_defaults){
