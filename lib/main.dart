@@ -32,8 +32,27 @@ class MyApp extends StatelessWidget {
 
           brightness: Brightness.dark
       ),
-      home: CardPage(title: 'Flutter App main page'),
+      home: MainAppStateful(),
     );
   }
 }
 
+class MainAppStateful extends StatefulWidget{
+  @override
+  State<StatefulWidget> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainAppStateful>{
+  @override
+  void initState() {
+    super.initState();
+
+    //check for update <github>?
+
+  }
+  @override
+  Widget build(BuildContext context) {
+    return CardPage(title: 'Flutter App main page');
+  }
+
+}

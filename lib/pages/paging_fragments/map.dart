@@ -125,7 +125,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
       });
     });*/
   }
-
+  //()=>ScaffoldMessenger.of(context).showSnackBar(markerClicked),
   final markerClicked = const SnackBar(
     content: Text('Marker tap'),
     duration: Duration(seconds:2),

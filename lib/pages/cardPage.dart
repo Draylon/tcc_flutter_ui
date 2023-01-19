@@ -48,37 +48,40 @@ class _CardPageState extends State<CardPage> {
     super.dispose();
   }
   Map whois_json={};
-  late Iterable azure_json;
+  Map<String,dynamic> azure_json={};
   _fetch_card_data() async {
       try{
         setState(() {
           menuLoaded=0;
         });
         if(whois_json.isEmpty) {
+          final Map<String,String> _qParams = <String,String>{
+            'fields':'ip,connection,success,type,country,city,latitude,longitude'
+          };
           await http.get(
-            Uri.https("ipwho.is","/?fields=ip,connection,success,type,country,city,latitude,longitude")
+            Uri.https("ipwho.is","",_qParams)
         ).then((whois_response) {
-            if(whois_response.statusCode==200){
-                //ip,success,type,country,city,latitude,longitude
-                whois_json= json.decode(whois_response.body);
-                /*http.get(Uri.https(
-                          "tcc-api-mon.azurewebsites.net","/api/ui_data/main_menu",
-                    {
-                        'ip': whois_json['ip'],
-                        'country': whois_json['country'],
-                        'city': whois_json['city'],
-                        'latitude': whois_json['latitude'],
-                        'longitude': whois_json['longitude']
-                    }
-                )).then((azure_response) => {
-                  menuLoaded=true,
-                  if (azure_response.statusCode == 200) {
-                    setState((){
-                      azure_json = json.decode(azure_response.body);
-                      avaliableCards = azure_json.map((e) => ExibitCard.fromJson(e)).toList();
-                    })
-                  }
-                })*/
+          if(whois_response.statusCode==200){
+              //ip,success,type,country,city,latitude,longitude
+              whois_json= json.decode(whois_response.body);
+              /*http.get(Uri.https(
+                              "tcc-api-mon.azurewebsites.net","/api/ui_data/main_menu",
+                        {
+                            'ip': whois_json['ip'],
+                            'country': whois_json['country'],
+                            'city': whois_json['city'],
+                            'latitude': whois_json['latitude'],
+                            'longitude': whois_json['longitude']
+                        }
+                    )).then((azure_response) => {
+                      menuLoaded=true,
+                      if (azure_response.statusCode == 200) {
+                        setState((){
+                          azure_json = json.decode(azure_response.body);
+                          avaliableCards = azure_json.map((e) => ExibitCard.fromJson(e)).toList();
+                        })
+                      }
+                    })*/
             }else{
               setState((){
                 menuLoaded=1;
@@ -101,15 +104,19 @@ class _CardPageState extends State<CardPage> {
             failureMessage="Problema no apontamento da região";
             menuLoaded=1;
           });
+          return;
         }
+
+        //Pegar os dados do Location da pessoa ainda e por aq tbm
+        //ver se dá pra fazer isso aq virar GET FormData
 
         await ApiRequests.call("/api/ui_data/main_menu",{
           'ip': whois_json['ip'],
           'country': whois_json['country'],
           'city': whois_json['city'],
-          'latitude': whois_json['latitude'],
-          'longitude': whois_json['longitude'],
-          'connection': whois_json['connection'],
+          'latitude': whois_json['latitude'].toString(),
+          'longitude': whois_json['longitude'].toString(),
+          'connection': whois_json['connection'].toString(),
         }).then((api_response) {
           print("Request completed");
           if (api_response.statusCode == 200) {
@@ -117,9 +124,11 @@ class _CardPageState extends State<CardPage> {
               azure_json = json.decode(api_response.body);
               setState((){
                 menuLoaded=2;
-                avaliableCards = azure_json.map((e) => ExibitCard.fromJson(e)).toList();
+                avaliableCards.initializer(azure_json,this.context);
+                //azure_json.map((e) => ExibitCard.fromJson(e)).toList();
               });
             }catch(e){
+              print(e);
               setState((){
                 failureMessage="API returned invalid data";
                 menuLoaded=1;
@@ -145,6 +154,7 @@ class _CardPageState extends State<CardPage> {
         );
         } catch(e){
           print("error on req:");
+          print("latest error: $failureMessage");
           print(e.toString());
           print("----");
         }
@@ -158,7 +168,18 @@ class _CardPageState extends State<CardPage> {
 
   int menuLoaded=0;
   String failureMessage="Loading Failed!\nPlease refresh";
-  List<ExibitCard> avaliableCards = [];
+  ExibitCards avaliableCards = ExibitCards();
+  List<ExibitCard>avaliableCardsContainer = [];
+
+  //()=>ScaffoldMessenger.of(context).showSnackBar(markerClicked),
+  final settingsMarker = const SnackBar(
+    content: Text('Settings em breve'),
+    duration: Duration(seconds:3),
+  );
+  final buscaMarker = const SnackBar(
+    content: Text('S/ Busca por enquanto\nProblema no mongo'),
+    duration: Duration(seconds:4),
+  );
 
 
   _buildPage(){
@@ -170,17 +191,21 @@ class _CardPageState extends State<CardPage> {
           LoadingFailed(message: failureMessage,refreshOption: () {
             return _fetch_card_data();
           },)
-        :ListView.builder(
-          padding: const EdgeInsets.all(10),
-          itemCount: avaliableCards.length,
-          itemBuilder: (context, index)=>_buildPageCards(index),
+        :RefreshIndicator(
+          displacement: 80,
+          onRefresh:(){return _fetch_card_data();},
+          child:ListView(
+            padding: const EdgeInsets.all(10),
+            children: avaliableCards.toList(),
+          ),
         ),
 
       extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton:FloatingActionButton(
-        onPressed: ()=>{
-        },
+
+        onPressed: ()=>ScaffoldMessenger.of(context).showSnackBar(settingsMarker), // liberar logo settings <=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=
+
         child: const Icon(Icons.settings),
       ),
       bottomNavigationBar: BottomAppBar(
