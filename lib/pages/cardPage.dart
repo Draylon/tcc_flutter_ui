@@ -19,6 +19,7 @@ import 'package:path/path.dart' as pathing;
 import 'package:provider/provider.dart';
 import 'package:dart_ipify/dart_ipify.dart';
 import 'package:ui/shared/components/LoadingIndicator.dart';
+import 'package:ui/shared/control/LocationHandler.dart';
 
 import '../shared/components/LoadingFailed.dart';
 import '../shared/state/DownloadProvider.dart';
@@ -47,123 +48,59 @@ class _CardPageState extends State<CardPage> {
   void dispose(){
     super.dispose();
   }
-  Map whois_json={};
-  Map<String,dynamic> azure_json={};
-  _fetch_card_data() async {
-      try{
-        setState(() {
-          menuLoaded=0;
-        });
-        if(whois_json.isEmpty) {
-          final Map<String,String> _qParams = <String,String>{
-            'fields':'ip,connection,success,type,country,city,latitude,longitude'
-          };
-          await http.get(
-            Uri.https("ipwho.is","",_qParams)
-        ).then((whois_response) {
-          if(whois_response.statusCode==200){
-              //ip,success,type,country,city,latitude,longitude
-              whois_json= json.decode(whois_response.body);
-              /*http.get(Uri.https(
-                              "tcc-api-mon.azurewebsites.net","/api/ui_data/main_menu",
-                        {
-                            'ip': whois_json['ip'],
-                            'country': whois_json['country'],
-                            'city': whois_json['city'],
-                            'latitude': whois_json['latitude'],
-                            'longitude': whois_json['longitude']
-                        }
-                    )).then((azure_response) => {
-                      menuLoaded=true,
-                      if (azure_response.statusCode == 200) {
-                        setState((){
-                          azure_json = json.decode(azure_response.body);
-                          avaliableCards = azure_json.map((e) => ExibitCard.fromJson(e)).toList();
-                        })
-                      }
-                    })*/
-            }else{
-              setState((){
-                menuLoaded=1;
-              });
-            }
-            return true;
-        },onError: (e) {
-          print("Error on whois fetch:");
+
+  
+  _fetch_card_data() async{
+    Map whois_json={};
+    Map<String,dynamic> azure_json={};
+    await LocationHandler.isp_data().then((whois_response) {
+      whois_json = whois_response;
+      return true;
+    },onError: (e) {
+      print("Error on whois fetch:");print(e);
+      setState((){failureMessage="Error on whois fetch";menuLoaded=1;});
+      return false;
+    });
+
+    if(whois_json.isEmpty){
+      setState((){failureMessage="Problema no apontamento da região";menuLoaded=1;});
+      return;
+    }
+
+    await ApiRequests.call("/api/ui_data/main_menu",{
+      'ip': whois_json['ip'],
+      'country': whois_json['country'],
+      'city': whois_json['city'],
+      'latitude': whois_json['latitude'].toString(),
+      'longitude': whois_json['longitude'].toString(),
+      'connection': whois_json['connection'].toString(),
+    }).then((api_response) {
+      print("Request completed");
+      if (api_response.statusCode == 200) {
+        try{
+          azure_json = json.decode(api_response.body);
+          setState((){
+            menuLoaded=2;
+            avaliableCards.initializer(azure_json,this.context);
+            //azure_json.map((e) => ExibitCard.fromJson(e)).toList();
+          });
+        }catch(e){
           print(e);
-          setState((){
-            failureMessage="Error on whois fetch";
-            menuLoaded=1;
-          });
-          return false;
-        });
+          setState((){failureMessage="API returned invalid data";menuLoaded=1;});
         }
-
-        if(whois_json.isEmpty){
-          setState((){
-            failureMessage="Problema no apontamento da região";
-            menuLoaded=1;
-          });
-          return;
-        }
-
-        //Pegar os dados do Location da pessoa ainda e por aq tbm
-        //ver se dá pra fazer isso aq virar GET FormData
-
-        await ApiRequests.call("/api/ui_data/main_menu",{
-          'ip': whois_json['ip'],
-          'country': whois_json['country'],
-          'city': whois_json['city'],
-          'latitude': whois_json['latitude'].toString(),
-          'longitude': whois_json['longitude'].toString(),
-          'connection': whois_json['connection'].toString(),
-        }).then((api_response) {
-          print("Request completed");
-          if (api_response.statusCode == 200) {
-            try{
-              azure_json = json.decode(api_response.body);
-              setState((){
-                menuLoaded=2;
-                avaliableCards.initializer(azure_json,this.context);
-                //azure_json.map((e) => ExibitCard.fromJson(e)).toList();
-              });
-            }catch(e){
-              print(e);
-              setState((){
-                failureMessage="API returned invalid data";
-                menuLoaded=1;
-              });
-            }
-          }else{
-            setState((){
-              failureMessage="API returned invalid code";
-              menuLoaded=1;
-            });
-          }
-          return true;
-        },onError:(e) {
-          print("Error on API fetch:");
-          print(e);
-          setState((){
-            failureMessage="Serviço com problemas";
-            menuLoaded=1;
-          });
-          //return Future.error("Api Error");
-          return false;
-        }
-        );
-        } catch(e){
-          print("error on req:");
-          print("latest error: $failureMessage");
-          print(e.toString());
-          print("----");
-        }
-
-        //final ipv4 = await Ipify.ipv4();
-        //final geolocator_data = await http.get(Uri.http("geoplugin.net","/json.gp?ip=${ipv4}"));
+      }else{
+        setState((){failureMessage="API returned invalid code";menuLoaded=1;});
+      }
+      return true;
+    },onError:(e) {
+      print("Error on API fetch:");print(e);
+      setState((){failureMessage="Serviço com problemas";menuLoaded=1;});
+      //return Future.error("Api Error");
+      return false;
+    });
 
 
-        //inject default cards?
+
   }
 
   int menuLoaded=0;
@@ -184,21 +121,66 @@ class _CardPageState extends State<CardPage> {
 
   _buildPage(){
     return Scaffold(
-      body:
+      body: NestedScrollView(
+        headerSliverBuilder: (ctx,isScrolled)=>[
+          SliverAppBar(
+            title: Container(
+              padding: EdgeInsets.fromLTRB(15, 0,15, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FittedBox(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+                      decoration: BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(
+                                color: Colors.black45,
+                                style: BorderStyle.solid,
+                                width: 2
+                            )
+                        ),
+                      ),
+                      child:Row(
+                        children: [Padding(padding: EdgeInsets.fromLTRB(10,0,10,0),
+                            child: Row(
+                              children: [
+                                Icon(Icons.near_me),
+                                Icon(Icons.wifi_tethering)
+                              ],
+                            )
+
+                        ),
+                          Text("Local"),],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            toolbarHeight: 80,
+            backgroundColor: Colors.transparent,
+            foregroundColor: Colors.blueGrey,
+          )
+        ],
+        body:
         menuLoaded==0?
-          const LoadingIndicator()
-        :menuLoaded==1?
-          LoadingFailed(message: failureMessage,refreshOption: () {
-            return _fetch_card_data();
-          },)
-        :RefreshIndicator(
-          displacement: 80,
-          onRefresh:(){return _fetch_card_data();},
-          child:ListView(
-            padding: const EdgeInsets.all(10),
-            children: avaliableCards.toList(),
-          ),
+        const LoadingIndicator()
+            :menuLoaded==1?
+        LoadingFailed(message: failureMessage,refreshOption: () {
+        return _fetch_card_data();
+        },)
+            :RefreshIndicator(
+        displacement: 80,
+        onRefresh:(){return _fetch_card_data();},
+        child:ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: avaliableCards.length(),
+        itemBuilder: (BuildContext context, int index) => avaliableCards.item(index),
         ),
+        ),
+      ),
 
       extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,

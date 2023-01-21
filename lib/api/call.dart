@@ -8,7 +8,7 @@ class ApiRequests{
         if(!doSecure){
             print("Requesting on debug");
             return http.get(Uri.http(
-                "192.168.3.121:8081",route,queryParameters
+                "192.168.3.129:8081",route,queryParameters
             )).timeout(const Duration(seconds: 5));
         }
         if(Foundation.kReleaseMode){
@@ -17,8 +17,8 @@ class ApiRequests{
             ));
         }else{
             print("Requesting on debug");
-            return http.get(Uri.https(
-                "192.168.3.121:8080",route,queryParameters
+            return http.get(Uri.http(
+                "192.168.3.129:8081",route,queryParameters
             ));
         }
     }

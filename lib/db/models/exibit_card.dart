@@ -39,8 +39,8 @@ class _ExibitCardState extends State<ExibitCard>{
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(15))),
       child: InkWell(
         onTap: ()=>widget.action ?? {ScaffoldMessenger.of(context).showSnackBar(defaultFunction)},
-          //ScaffoldMessenger.of(context).showSnackBar();
-          /*final val = await Navigator.push(context,
+        //ScaffoldMessenger.of(context).showSnackBar();
+        /*final val = await Navigator.push(context,
                 MaterialPageRoute(builder: (BuildContext c) {
                   return new ViewImage(_imagesController.images[i].id!);
                 }));
@@ -55,39 +55,41 @@ class _ExibitCardState extends State<ExibitCard>{
             ),
             borderRadius: BorderRadius.circular(15),
           ),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 0.3,sigmaY: 0.3),
-            child: Container(
-                padding: const EdgeInsets.fromLTRB(15, 35, 15, 35),
-                /*decoration: BoxDecoration(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5,sigmaY: 5),
+              child: Container(
+                  padding: const EdgeInsets.fromLTRB(15, 35, 15, 35),
+                  /*decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.4),
                   borderRadius: BorderRadius.all(Radius.circular(15)),
                 ),*/
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(this.widget.title,style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontFamily: "Verdana",
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: 2,
-                        ),),
-                        Text(this.widget.description,style: TextStyle(
-                          color: Colors.white,
-                          fontSize: this.widget.description!=""?16:0,
-                          fontFamily: "Verdana",
-                          fontWeight: FontWeight.w200,
-                          letterSpacing: 1.2,
-                          overflow: TextOverflow.visible,
-                        ),),
-                      ],
-                    ),
-                  ],
-                )
+                  child: Flex(direction: Axis.vertical,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(this.widget.title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontFamily: "Verdana",
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: 2,
+                      ),),
+                      Text(this.widget.description,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                        color: Colors.white,
+                        fontSize: this.widget.description!=""?16:0,
+                        fontFamily: "Verdana",
+                        fontWeight: FontWeight.w200,
+                        leadingDistribution: TextLeadingDistribution.even,
+                        letterSpacing: 1.2,
+                      ),),
+                    ],
+
+                  )
+              ),
             ),
           ),
         ),
@@ -122,7 +124,7 @@ class ExibitCards{
     within_city.length>3?within_city.removeRange(3,within_city.length):null;
     nearby_cities.length>3?nearby_cities.removeRange(3,nearby_cities.length):null;
 
-    const Image loaded = Image(image: AssetImage("assets/logo2.png"));
+    const Image loaded = Image(image: AssetImage("assets/logo3.png"));
     tags.forEach((element) {
       _list.add(ExibitCard(parentContext: context,title: "Visita à $element", description: "Conferir as condições de $element da região", img: loaded,action: () async {
         await Navigator.push(context,
@@ -181,6 +183,8 @@ class ExibitCards{
   }
 
   List<ExibitCard> toList(){return _list;}
+
+  ExibitCard item(int i){return _list[i];}
 
   int length(){
     return _list.length;
