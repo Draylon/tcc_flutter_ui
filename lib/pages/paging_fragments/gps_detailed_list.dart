@@ -1,4 +1,5 @@
 
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:ui/pages/paging_fragments/map.dart';
 
@@ -31,38 +32,37 @@ class _CardedListFragState extends State<CardedListFragment> with AutomaticKeepA
 
   _build_screen() {
     return Scaffold(
-      body: Container(
-        padding: EdgeInsets.fromLTRB(10,10,10,0),
-        height: 220,
-        width: double.maxFinite,
-        child: ListView(
-          children:[
-            Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),Card(
-              elevation: 5,
-              color: Colors.indigo,
-            ),
-          ],
+      appBar: AppBar(
+        title: const Text("Nearby Places",style: TextStyle(
+          letterSpacing: 3
+        )),
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 60,
+        centerTitle: true,
+      ),
+      body: CarouselSlider.builder(
+        options: CarouselOptions(
+          //height: 600
+          enableInfiniteScroll: false,
+          enlargeCenterPage: true,
+          enlargeFactor: 0.3,
+          aspectRatio: 9/16,
+          viewportFraction: 0.8,
+          initialPage: 0,
+          reverse: true,
+        ),
+        itemCount: 5,
+        itemBuilder: (BuildContext context,int itemIndex,int pageviewIndex)=> Card(
+          child: Container(
+            width: double.maxFinite,
+            child: Text("Filler\n\nfunção nova: places_by_geocoordinate"),
+          ),
+          elevation: 5,
+          color: Colors.indigo,
         ),
       ),
     );
   }
-
 }

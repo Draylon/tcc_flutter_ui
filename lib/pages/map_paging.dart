@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:ui/pages/SearchPage.dart';
 import 'package:ui/pages/paging_fragments/data_detailed_list.dart';
 import 'package:ui/pages/paging_fragments/gps_detailed_list.dart';
 import 'package:ui/pages/paging_fragments/map.dart';
@@ -38,7 +39,7 @@ class _PageMapState extends State<PageMap> {
     super.dispose();
   }
 
-  //final _sideCtrl = PageController();
+  final _sideCtrl = PageController();
   final _pager_ctrl = PageController(
     initialPage: 0,
     //viewportFraction: 1.1
@@ -49,28 +50,40 @@ class _PageMapState extends State<PageMap> {
   Widget build(BuildContext context) => _buildPager();
 
   _pageMapTitle(BuildContext parent_ctx) => AppBar(
-      centerTitle: true,
-      title: TextField(
-        obscureText: true,
-        decoration: InputDecoration(
-          labelText: "Pesquisar Locais"
+    centerTitle: true,
+    title: TextButton(
+      onPressed: ()async=>{
+        await Navigator.push(context,
+            MaterialPageRoute(builder: (BuildContext c) {
+              return SearchPage();
+            }))
+      },
+      child: const Text("Buscar Locais",
+        textAlign: TextAlign.center,
+        style:TextStyle(
+          color: Colors.white,
+          shadows: [Shadow(color: Colors.black45,blurRadius: 10)],
+          letterSpacing: 4,
+          fontSize: 30,
+          fontWeight: FontWeight.w300,
         ),
       ),
-      toolbarOpacity: 0.4,
-      backgroundColor: Theme.of(context).accentColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-          topLeft: Radius.circular(-30),
-          topRight: Radius.circular(-30),
-        ),
+    ),
+    toolbarOpacity: 0.4,
+    backgroundColor: Theme.of(context).accentColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(30),
+        bottomRight: Radius.circular(30),
+        topLeft: Radius.circular(-30),
+        topRight: Radius.circular(-30),
       ),
-      /*leading: IconButton(
+    ),
+    /*leading: IconButton(
         icon: Icon(Icons.list),
         onPressed: () => Scaffold.of(parent_ctx).openDrawer(),
       ),*/
-    );
+  );
     /*return Expanded(
       child: Container(
         margin: EdgeInsets.all(25),
@@ -119,7 +132,7 @@ class _PageMapState extends State<PageMap> {
           Container(
             margin: EdgeInsets.fromLTRB(12,0,12,12),
             //padding: EdgeInsets.fromLTRB(12,12,12,12),
-            height: 70,
+            height: 90,
             child: _pageMapTitle(pager_context),
           ),
         ],
@@ -188,7 +201,6 @@ class _PageMapState extends State<PageMap> {
       floatingActionButton: FloatingActionButton(
         onPressed: ()=>{
           _pager_ctrl.animateToPage(1, duration: Duration(milliseconds: 600), curve: Curves.easeOutCubic),
-          _sidepager_delay=4
         },
         child: const Icon(Icons.keyboard_arrow_up),
       ),
@@ -216,20 +228,16 @@ class _PageMapState extends State<PageMap> {
     );
   }
 
-  int _sidepager_delay = 4;
   _sideDataPages(){
     //ValueNotifier Listener Builder pode resolver o problema, mas dá rebuild sepá
     return NotificationListener<OverscrollIndicatorNotification>(
       onNotification: (overscroll) {
-        if(_sidepager_delay <= 0){
+        if(_sideCtrl.page==0)
           _pager_ctrl.animateToPage(0, duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic);
-        }else{
-          _sidepager_delay--;
-        }
         return true;
       },
       child: PageView(
-        //controller: _sideCtrl,
+        controller: _sideCtrl,
         scrollBehavior: const ScrollBehavior(androidOverscrollIndicator: AndroidOverscrollIndicator.stretch),
         scrollDirection: Axis.vertical,
         clipBehavior: Clip.antiAlias,

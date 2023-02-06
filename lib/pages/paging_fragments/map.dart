@@ -87,13 +87,12 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
 
   void _parse_markers(String responseBody) {
     final List<Map<String,dynamic>>parsed = json.decode(responseBody).cast<Map<String, dynamic>>();
-    print(parsed);
     parsed.forEach((e) {
       markers.add(
           Marker(
               width: 40,
               height: 40,
-              point: LatLng(e["latitude"],e["longitude"]), //point: LatLng(-26.2861838,-48.9949695),
+              point: LatLng(e["location"]["coordinates"][0],e["location"]["coordinates"][1]), //point: LatLng(-26.2861838,-48.9949695),
               builder: (ctx) => GestureDetector(
                 child: Icon(Icons.location_on_outlined,size: 40,color: Colors.blueAccent,),
                 onTap: ()=>ScaffoldMessenger.of(context).showSnackBar(markerClicked),
@@ -107,7 +106,8 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   }
   _fetch_markers() async{
     try{
-      final response = await ApiRequests.call("/api/sensor");
+      print("Fetching sensor position");
+      final response = await ApiRequests.call("/api/v1/sensor");
       if (response.statusCode == 200) {
         return _parse_markers(response.body);
       } else {

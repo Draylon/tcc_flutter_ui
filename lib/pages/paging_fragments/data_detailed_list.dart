@@ -31,14 +31,38 @@ class _DBDataListFragState extends State<DBDataListFragment> with AutomaticKeepA
 
   _build_screen() {
     return Scaffold(
-      body: Container(
-        padding: EdgeInsets.fromLTRB(10,10,10,0),
-        height: 220,
-        width: double.maxFinite,
-        child: Card(
-          color: Colors.deepOrangeAccent,
-        elevation: 5,
-        ),
+      appBar: AppBar(
+        title: const Text("Latest metrics",style: TextStyle(
+            letterSpacing: 3
+        )),
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 60,
+        centerTitle: true,
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Card(
+            color: Colors.blueGrey,
+            child: Container(
+              alignment: Alignment.center,
+              child: Text("Últimas métricas sobre algum dado da região"),
+              height: 220,
+            ),
+            elevation: 5,
+          ),
+          Card(
+            color: Colors.blueGrey,
+            child: Container(
+              child: Text("Fazer algo informativo em formato de card"),
+              height: 220,
+              alignment: Alignment.center,
+            ),
+            elevation: 5,
+          )
+        ],
       ),
     );
   }

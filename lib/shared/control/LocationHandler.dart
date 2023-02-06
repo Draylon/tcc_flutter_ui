@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 
@@ -23,20 +25,80 @@ class LocationHandler{
   }
 
   static Location _locationService = Location();
-  static LocationData? _userLocation;
-  static StreamSubscription? _locSub;
-  static bool _permission = false;
-  static String? _serviceError = '';
+  static LocationData? _locationData;
+  static LocationData? get locationData => _locationData;
 
-  void _initLocationService() async {
+  static Future<Stream<LocationData>?> requestGPSListener({bool prompt=false}) async{
+
+    try{
+
+      PermissionStatus? perm = await checkGPSPermission();
+      if(prompt){
+        if(perm!=PermissionStatus.deniedForever){
+          perm = await _locationService.requestPermission();
+        }
+      }
+      if(perm==PermissionStatus.granted){
+        await _locationService.changeSettings(
+          accuracy: LocationAccuracy.balanced,
+          interval: 15000,
+        );
+        return _locationService.onLocationChanged;
+        //===========
+      }else{
+        throw Exception("Permission Denied");
+      }
+    } on Exception catch(e){
+      return Future.error(e);
+    }
+
+  }
+
+  static Future<LocationData?> requestCurrentGPS({bool prompt=false}) async{
+
+    try{
+      PermissionStatus? perm = await checkGPSPermission();
+      if (prompt && perm != PermissionStatus.deniedForever) {
+        perm = await _locationService.requestPermission();
+      }
+
+      if(perm==PermissionStatus.granted||perm==PermissionStatus.grantedLimited){
+        //===========
+        await _locationService.changeSettings(
+          accuracy: LocationAccuracy.balanced,
+          interval: 15000,
+        );
+        return _locationService.getLocation().timeout(const Duration(seconds: 4));
+      }else{
+        throw Exception("Permission Denied");
+      }
+
+    } on Exception catch(e){
+      return Future.error(e);
+    }
+
+  }
+
+  static Future<PermissionStatus?> requestGPSPrecision() async{
+    try{
+      PermissionStatus? perm = await checkGPSPermission();
+      if(perm!=PermissionStatus.deniedForever){
+        return _locationService.requestPermission();
+
+      }
+    } on Exception catch(e){
+      print(e);
+    }
+  }
+
+  static Future<PermissionStatus?> checkGPSPermission() async {
+
     /*_locSub = Location.instance.onLocationChanged.listen((e) {
       setState(() {
         _userLocation = e;
 
       });
     });*/
-
-    LocationData? location;
     bool serviceEnabled;
     bool serviceRequestResult;
 
@@ -45,74 +107,78 @@ class LocationHandler{
       //if(!b1) return;
       serviceEnabled = await _locationService.serviceEnabled();
       if (serviceEnabled) {
-        PermissionStatus _permissionGranted = await _locationService.hasPermission();
-        if (_permissionGranted != PermissionStatus.deniedForever){
-          final permission = await _locationService.requestPermission();
-          _permission = permission == PermissionStatus.granted;
-          if (_permission) {
-            //===========
-            await _locationService.changeSettings(
-              accuracy: LocationAccuracy.balanced,
-              interval: 15000,
-            );
-
-            /*setState(() {
-              _locationStatus = Icons.my_location;
-            });*/
-
-            location = await _locationService.getLocation();
-            _userLocation = location;
-            //userMarker.point.latitude =_userLocation!.latitude!;
-            //userMarker.point.longitude =_userLocation!.longitude!;
-            _locationService.onLocationChanged.listen((LocationData result) async {
-              /*if (mounted) {
-                setState(() {
-                  _userLocation = result;
-                  userMarker.point.latitude =_userLocation!.latitude!;
-                  userMarker.point.longitude =_userLocation!.longitude!;
-                });
-              }*/
-            });
-            //============
-          }
-        }
+        return await _locationService.hasPermission();
+        //return _permissionGranted;
       } else {
         serviceRequestResult = await _locationService.requestService();
         if (serviceRequestResult) {
-          _initLocationService();
-          return;
+          return checkGPSPermission();
         }
       }
     } on PlatformException catch (e) {
       debugPrint(e.toString());
       if (e.code == 'PERMISSION_DENIED') {
-        _serviceError = e.message;
         /*setState(() {
           _locationStatus = Icons.location_disabled_sharp;
         });*/
       } else if (e.code == 'SERVICE_STATUS_ERROR') {
-        _serviceError = e.message;
         /*setState(() {
           _locationStatus = Icons.location_disabled_sharp;
         });*/
       }
-      location = null;
+      return Future.error(e);
     } on Exception catch(e){
-      print("unknown error");
-      _serviceError = e as String?;
+      return Future.error(e);
     }
   }
 
+
+
   static bool _isp_ongoing=false;
   static Map<String,dynamic> _response_isp_data={};
-  static Future<Map<String,dynamic>> isp_data() async {
+
+  static Future<Map<String,dynamic>> cached_isp_data(String params) async {
+
     if(_isp_ongoing==true) return Future.error("ongoing request");
     _isp_ongoing=true;
     try{
       if(_response_isp_data.isEmpty) {
-        final Map<String,String> _qParams = <String,String>{
-          'fields':'ip,connection,success,type,country,city,latitude,longitude'
-        };
+        final Map<String,String> _qParams = <String,String>{'fields':params};
+        await DefaultCacheManager().getSingleFile(Uri.https("ipwho.is", "").toString(),headers: _qParams).then((whoisResponse) {
+          if (whoisResponse != null && whoisResponse.existsSync()) {
+            var res = whoisResponse.readAsStringSync();
+            _response_isp_data= json.decode(res);
+          }else{
+            return Future.error(whoisResponse);
+          }
+        },onError: (e) {
+          print("Error on whois fetch:");
+          print(e);
+          //failed to retrieve ISP info
+          return Future.error(e);
+        });
+      }
+    } catch(e){
+      print(e);
+      Future.error(e);
+    }
+    _isp_ongoing=false;
+    return _response_isp_data;
+    //final ipv4 = await Ipify.ipv4();
+    //final geolocator_data = await http.get(Uri.http("geoplugin.net","/json.gp?ip=${ipv4}"));
+
+
+    //inject default cards?
+  }
+
+
+
+  static Future<Map<String,dynamic>> isp_data(String params) async {
+    if(_isp_ongoing==true) return Future.error("ongoing request");
+    _isp_ongoing=true;
+    try{
+      if(_response_isp_data.isEmpty) {
+        final Map<String,String> _qParams = <String,String>{'fields':params};
         await http.get(
             Uri.https("ipwho.is","",_qParams)
         ).then((whoisResponse) {
@@ -161,7 +227,7 @@ _fetch_card_data() async {
               //ip,success,type,country,city,latitude,longitude
               whois_json= json.decode(whois_response.body);
               /*http.get(Uri.https(
-                              "tcc-api-mon.azurewebsites.net","/api/ui_data/main_menu",
+                              "tcc-api-mon.azurewebsites.net","/api/v1/ui_data/main_menu",
                         {
                             'ip': whois_json['ip'],
                             'country': whois_json['country'],
@@ -206,7 +272,7 @@ _fetch_card_data() async {
         //Pegar os dados do Location da pessoa ainda e por aq tbm
         //ver se dá pra fazer isso aq virar GET FormData
 
-        await ApiRequests.call("/api/ui_data/main_menu",{
+        await ApiRequests.call("/api/v1/ui_data/main_menu",{
           'ip': whois_json['ip'],
           'country': whois_json['country'],
           'city': whois_json['city'],

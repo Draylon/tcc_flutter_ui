@@ -7,6 +7,6 @@ class MenuDataRequest {
 
   MenuDataRequest._internal();
 
-  List<string> menuData;
+  late List<String> menuData;
   
 }

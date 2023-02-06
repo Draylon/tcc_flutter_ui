@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ui/pages/cardPage.dart';
-import 'package:ui/pages/paging.dart';
+import 'package:ui/pages/map_paging.dart';
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 

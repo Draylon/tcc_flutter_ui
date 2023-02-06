@@ -1,6 +1,5 @@
-import 'package:baseflow_plugin_template/baseflow_plugin_template.dart';
-import 'package:example/plugin_example/download_page.dart';
-import 'package:example/plugin_example/floating_action_button.dart';
+/*
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -34,12 +33,15 @@ class _CacheManagerPageState extends State<CacheManagerPage> {
 
   void _downloadFile() {
     setState(() {
+
       fileStream = DefaultCacheManager().getFileStream(url, withProgress: true);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    DefaultCacheManager cx = DefaultCacheManager();
+    cx.file
     if (fileStream == null) {
       return Scaffold(
         appBar: null,
@@ -77,4 +79,4 @@ class _CacheManagerPageState extends State<CacheManagerPage> {
       fileStream = null;
     });
   }
-}
+}*/

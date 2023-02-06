@@ -1,29 +1,18 @@
 
 
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ui/api/call.dart';
-import 'package:ui/db/models/exibit_card.dart';
-import 'package:ui/pages/paging_fragments/data_detailed_list.dart';
-import 'package:ui/pages/paging_fragments/gps_detailed_list.dart';
-import 'package:ui/pages/paging_fragments/map.dart';
-import 'package:path/path.dart' as pathing;
-import 'package:provider/provider.dart';
-import 'package:dart_ipify/dart_ipify.dart';
+import 'package:ui/shared/components/exibit_card.dart';
+import 'package:ui/pages/SettingsPage.dart';
 import 'package:ui/shared/components/LoadingIndicator.dart';
 import 'package:ui/shared/control/LocationHandler.dart';
+import 'package:location/location.dart';
 
+import '../shared/components/ExibitCardLoader.dart';
 import '../shared/components/LoadingFailed.dart';
-import '../shared/state/DownloadProvider.dart';
-import '../shared/state/GeneralProvider.dart';
 
 class CardPage extends StatefulWidget {
   CardPage({Key? key, required this.title}) : super(key: key);
@@ -49,42 +38,163 @@ class _CardPageState extends State<CardPage> {
     super.dispose();
   }
 
-  
-  _fetch_card_data() async{
-    Map whois_json={};
-    Map<String,dynamic> azure_json={};
-    await LocationHandler.isp_data().then((whois_response) {
-      whois_json = whois_response;
-      return true;
-    },onError: (e) {
-      print("Error on whois fetch:");print(e);
-      setState((){failureMessage="Error on whois fetch";menuLoaded=1;});
-      return false;
-    });
+  Map whois_json={};
+  Map geocode_json={};
+  LocationData? _curr_location;
+  String uiCityName="Local não definido";
+  bool locationAvaliable=false;
 
-    if(whois_json.isEmpty){
+  _fetch_location_data({bool precision=false}) async{
+
+    String whois_params;
+
+    // check permission
+    print("check permission");
+
+    if(!precision) {
+      await LocationHandler.checkGPSPermission().then((value) {
+        setState(() {
+          locationAvaliable = value == PermissionStatus.granted;
+        });
+      }, onError: (e) {
+        print("Error on GPS permission");
+        print(e);
+      });
+    }else {
+      await LocationHandler.requestGPSPrecision().then((value) {
+        setState(() {
+          locationAvaliable = value == PermissionStatus.granted;
+        });
+      });
+    }
+
+    //retrieve coordinates
+    //LocationData? curr_location;
+    if(locationAvaliable){
+      print("retrieve coordinates");
+      await LocationHandler.requestCurrentGPS(prompt: false).then((value) {
+        _curr_location=value;
+      },onError: (e){
+        locationAvaliable=false;
+        print("Error on GPS Location retrieval");print(e);
+      });
+      setState(() {
+        _curr_location==null?locationAvaliable=false:null;
+      });
+
+    }
+
+
+    //retrieve geocoding
+    //_last_location?.latitude!=curr_location?.latitude &&
+    //_last_location?.longitude!=curr_location?.longitude
+    if(locationAvaliable && geocode_json.isEmpty){
+      print("retrieve geocoding");
+      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((api_response){
+        if (api_response.statusCode == 200) {
+          String api_response_body = api_response.body.replaceAll('null',"\"null\"");
+
+          try{
+            geocode_json = json.decode(api_response_body);
+          }on Exception catch(e){
+            print("internal error:");
+            print(e);
+            setState(() {
+              locationAvaliable=false;
+            });
+          }
+          print("Geocoding completed");
+        }else{
+          print("request invalid: "+api_response.statusCode.toString());
+          setState(() {
+            locationAvaliable=false;
+          });
+        }
+        //return true;
+      },onError: (e){
+        print("major error:");
+        print(e);
+        setState(() {
+          locationAvaliable=false;
+        });
+      });
+    }else{
+      print("skipping geocoding");
+    }
+    //==============================
+
+    if(locationAvaliable){
+      whois_params='ip,connection,success,type';
+    }else{
+      whois_params='ip,connection,success,type,country,city,latitude,longitude';
+    }
+
+    if(whois_json.isEmpty) {
+      await LocationHandler.cached_isp_data(whois_params).then((whois_response) {
+        whois_json = whois_response;
+        return true;
+      }, onError: (e) {
+        print("Error on whois fetch:");
+        print(e);
+        //setState((){failureMessage="Error on whois fetch";menuLoaded=1;});
+        //return false;
+      });
+    }else{
+      print("skipping whois phase");
+    }
+
+    if(locationAvaliable) setState(() {uiCityName=geocode_json['county'];});
+    else setState(() {uiCityName=whois_json['city'];});
+
+  }
+
+
+  _fetch_card_data() async{
+    await _fetch_location_data();
+    Map<String,dynamic> azure_json={};
+    if(whois_json.isEmpty && !locationAvaliable){
       setState((){failureMessage="Problema no apontamento da região";menuLoaded=1;});
       return;
     }
+    print("Obtendo cards");
+    Map<String,dynamic>? api_requests_query;
+    if(locationAvaliable){
+      print("Precise locations avaliable");
+      api_requests_query={
+        'ip': whois_json['ip'],
+        'country': geocode_json['country'],
+        'city': geocode_json['county'],
+        'street_name': geocode_json['name'],
+        'region': geocode_json['region'],
+        'latitude': _curr_location?.latitude.toString(),
+        'longitude': _curr_location?.longitude.toString(),
+        'connection': whois_json['connection'].toString(),
+      };
 
-    await ApiRequests.call("/api/ui_data/main_menu",{
-      'ip': whois_json['ip'],
-      'country': whois_json['country'],
-      'city': whois_json['city'],
-      'latitude': whois_json['latitude'].toString(),
-      'longitude': whois_json['longitude'].toString(),
-      'connection': whois_json['connection'].toString(),
-    }).then((api_response) {
+    }else{
+      print("Location unavaliable, Sticking to whois");
+      api_requests_query={
+        'ip': whois_json['ip'],
+        'country': whois_json['country'],
+        'city': whois_json['city'],
+        'latitude': whois_json['latitude'].toString(),
+        'longitude': whois_json['longitude'].toString(),
+        'connection': whois_json['connection'].toString(),
+      };
+
+    }
+
+    await ApiRequests.call("/api/v1/ui_data/main_menu",api_requests_query).then((api_response) {
       print("Request completed");
       if (api_response.statusCode == 200) {
         try{
           azure_json = json.decode(api_response.body);
-          setState((){
+          avaliableCards.initializer(azure_json,context);
+          setState(() {
             menuLoaded=2;
-            avaliableCards.initializer(azure_json,this.context);
             //azure_json.map((e) => ExibitCard.fromJson(e)).toList();
           });
-        }catch(e){
+        }on Exception catch(e){
           print(e);
           setState((){failureMessage="API returned invalid data";menuLoaded=1;});
         }
@@ -98,15 +208,12 @@ class _CardPageState extends State<CardPage> {
       //return Future.error("Api Error");
       return false;
     });
-
-
-
   }
 
   int menuLoaded=0;
   String failureMessage="Loading Failed!\nPlease refresh";
-  ExibitCards avaliableCards = ExibitCards();
-  List<ExibitCard>avaliableCardsContainer = [];
+  ExibitCardLoader avaliableCards = ExibitCardLoader();
+  //List<ExibitCard>avaliableCardsContainer = [];
 
   //()=>ScaffoldMessenger.of(context).showSnackBar(markerClicked),
   final settingsMarker = const SnackBar(
@@ -131,28 +238,25 @@ class _CardPageState extends State<CardPage> {
                 children: [
                   FittedBox(
                     alignment: Alignment.centerRight,
-                    child: Container(
-                      padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
-                      decoration: BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(
-                                color: Colors.black45,
-                                style: BorderStyle.solid,
-                                width: 2
-                            )
+                    child: MaterialButton(
+                      onPressed: ()=> _fetch_location_data(precision: true),
+                      child: Container(
+                        padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+                        decoration: BoxDecoration(
+                          border: Border(
+                              bottom: BorderSide(
+                                  color: Colors.black45,
+                                  style: BorderStyle.solid,
+                                  width: 2
+                              )
+                          ),
                         ),
-                      ),
-                      child:Row(
-                        children: [Padding(padding: EdgeInsets.fromLTRB(10,0,10,0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.near_me),
-                                Icon(Icons.wifi_tethering)
-                              ],
-                            )
-
+                        child:Row(
+                          children: [Padding(padding: const EdgeInsets.fromLTRB(10,0,10,0),
+                            child: locationAvaliable?const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
+                          ),
+                            Text(uiCityName),],
                         ),
-                          Text("Local"),],
                       ),
                     ),
                   ),
@@ -185,9 +289,13 @@ class _CardPageState extends State<CardPage> {
       extendBody: true,
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton:FloatingActionButton(
-
-        onPressed: ()=>ScaffoldMessenger.of(context).showSnackBar(settingsMarker), // liberar logo settings <=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=
-
+        //onPressed: ()=>ScaffoldMessenger.of(context).showSnackBar(settingsMarker), // liberar logo settings <=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=
+        onPressed: () async =>{
+            await Navigator.push(context,
+            MaterialPageRoute(builder: (BuildContext c) {
+            return SettingsPage();
+            }))
+        },
         child: const Icon(Icons.settings),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -209,9 +317,16 @@ class _CardPageState extends State<CardPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       // não sei oq por aqui kkkk
-                      Icon(Icons.cloud_queue_sharp,),
-                      Icon(Icons.add,),
-                      Icon(Icons.edit,),
+                      IconButton(onPressed: (){
+                          //sensor data?
+                      }, icon: const Icon(Icons.cloud_queue_sharp,),),
+                      IconButton(onPressed: (){
+                          // add device to network?
+                      }, icon: const Icon(Icons.add,),),
+                      IconButton(onPressed: (){
+                          // edit panels layout
+                      }, icon: const Icon(Icons.edit,),),
+
                     ],
                   ),
                 ),
