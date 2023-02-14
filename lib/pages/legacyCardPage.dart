@@ -3,12 +3,8 @@
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:ui/api/call.dart';
-import 'package:ui/pages/SearchPage.dart';
-import 'package:ui/pages/map_paging.dart';
 import 'package:ui/shared/components/exibit_card.dart';
 import 'package:ui/pages/SettingsPage.dart';
 import 'package:ui/shared/components/LoadingIndicator.dart';
@@ -188,7 +184,7 @@ class _CardPageState extends State<CardPage> {
 
     }
 
-    await ApiRequests.call("/api/v2/ui_data/main_menu",api_requests_query).then((api_response) {
+    await ApiRequests.call("/api/v1/ui_data/main_menu",api_requests_query).then((api_response) {
       print("Request completed");
       if (api_response.statusCode == 200) {
         try{
@@ -236,23 +232,17 @@ class _CardPageState extends State<CardPage> {
         headerSliverBuilder: (ctx,isScrolled)=>[
           SliverAppBar(
             title: Container(
-              padding: const EdgeInsets.fromLTRB(15, 0,15, 0),
+              padding: EdgeInsets.fromLTRB(15, 0,15, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Expanded(
-                    child: Text("Titulo?",style: TextStyle(
-                      fontSize: 26,
-                      color: Colors.white,
-                    ),),
-                  ),
                   FittedBox(
                     alignment: Alignment.centerRight,
                     child: MaterialButton(
                       onPressed: ()=> _fetch_location_data(precision: true),
                       child: Container(
-                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-                        decoration: const BoxDecoration(
+                        padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+                        decoration: BoxDecoration(
                           border: Border(
                               bottom: BorderSide(
                                   color: Colors.black45,
@@ -262,15 +252,10 @@ class _CardPageState extends State<CardPage> {
                           ),
                         ),
                         child:Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(10,0,10,0),
-                              child: locationAvaliable?const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
-                            ),
-                            Text(uiCityName,style: TextStyle(
-                              fontSize: 20
-                            ),),
-                          ],
+                          children: [Padding(padding: const EdgeInsets.fromLTRB(10,0,10,0),
+                            child: locationAvaliable?const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
+                          ),
+                            Text(uiCityName),],
                         ),
                       ),
                     ),
@@ -283,65 +268,20 @@ class _CardPageState extends State<CardPage> {
             foregroundColor: Colors.blueGrey,
           )
         ],
-        body: RefreshIndicator(
+        body:
+        menuLoaded==0?
+        const LoadingIndicator()
+            :menuLoaded==1?
+        LoadingFailed(message: failureMessage,refreshOption: () {
+        return _fetch_card_data();
+        },)
+            :RefreshIndicator(
         displacement: 80,
         onRefresh:(){return _fetch_card_data();},
-        child:ListView(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(30,0,30,0),
-              child: Flex(
-                direction: Axis.vertical,
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text("Como funciona?",style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w300,
-                    wordSpacing: 3,
-                  ),),
-                  Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vel mauris velit. Fusce non ullamcorper nibh. Nunc sit amet lacus pharetra, volutpat leo et, rhoncus ipsum. Nunc nisl nisi, posuere sed lorem eu, pellentesque finibus tellus. Nulla quis auctor odio. Nam commodo fermentum tortor nec auctor. Fusce molestie sagittis libero eget fringilla. Aenean ut tristique ligula. In sit amet velit sagittis, iaculis urna sed, placerat ante. Proin sollicitudin, dui a porta scelerisque, lorem nunc bibendum ligula, quis luctus sapien libero ut quam. Duis et enim ante. Praesent pharetra metus nec arcu tincidunt, ac iaculis nunc scelerisque. Maecenas porttitor ipsum eget tincidunt mattis. Vestibulum egestas rhoncus ex, at aliquam nunc fermentum vitae.",
-                    textAlign: TextAlign.justify,
-                    style: TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w200
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            menuLoaded==0?
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox.square(
-                    child: const LoadingIndicator(),
-                    dimension: 150,
-                  )
-                ],
-              )
-            :menuLoaded==1?
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox.square(
-                  child: LoadingFailed(message: failureMessage,),
-                  dimension: 150,
-                )
-              ],
-            ):
-            MasonryGridView.count(
-                padding: const EdgeInsets.all(20),
-                shrinkWrap: true,
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: avaliableCards.length,
-                itemBuilder: (ctx,i)=>avaliableCards.item(i)
-            ),
-          ],
+        child:ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: avaliableCards.length,
+        itemBuilder: (BuildContext context, int index) => avaliableCards.item(index),
         ),
         ),
       ),
@@ -350,10 +290,13 @@ class _CardPageState extends State<CardPage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton:FloatingActionButton(
         //onPressed: ()=>ScaffoldMessenger.of(context).showSnackBar(settingsMarker), // liberar logo settings <=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=
-        onPressed: () async => {
-          await Navigator.push(context, MaterialPageRoute(builder: (BuildContext c) => SearchPage()))
+        onPressed: () async =>{
+            await Navigator.push(context,
+            MaterialPageRoute(builder: (BuildContext c) {
+            return SettingsPage();
+            }))
         },
-        child: const Icon(Icons.search),
+        child: const Icon(Icons.settings),
       ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
@@ -374,19 +317,16 @@ class _CardPageState extends State<CardPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       // não sei oq por aqui kkkk
-                      IconButton(onPressed: () async =>{
-                        await Navigator.push(context,
-                            MaterialPageRoute(builder: (BuildContext c) {
-                              return SettingsPage();
-                            }))
-                      }, icon: const Icon(Icons.settings,),),
-                      /*IconButton(onPressed: (){
+                      IconButton(onPressed: (){
+                          //sensor data?
+                      }, icon: const Icon(Icons.cloud_queue_sharp,),),
+                      IconButton(onPressed: (){
                           // add device to network?
-                      }, icon: const Icon(Icons.add,),),*/
-                      IconButton(onPressed: () async => {
-                          // interactive map page
-                          await Navigator.push(context, MaterialPageRoute(builder: (BuildContext c) => PageMap(title: "Mapa interativo")))
-                      }, icon: const Icon(Icons.map_outlined,),),
+                      }, icon: const Icon(Icons.add,),),
+                      IconButton(onPressed: (){
+                          // edit panels layout
+                      }, icon: const Icon(Icons.edit,),),
+
                     ],
                   ),
                 ),

@@ -235,7 +235,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
         TileLayerWidget(
           options: TileLayerOptions(
             urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',backgroundColor: Colors.black54,
-            tilesContainerBuilder: darkModeTilesContainerBuilder,
+            //tilesContainerBuilder: darkModeTilesContainerBuilder,
           ),
         ),
       ],

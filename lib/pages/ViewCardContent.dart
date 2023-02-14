@@ -16,6 +16,29 @@ enum CardContentDataType{
     return name;
   }
   String toLower() => toString().toLowerCase();
+  static CardContentDataType? fromString(String s){
+    for (CardContentDataType element in CardContentDataType.values) {
+      if(element.toLower()==s.toLowerCase())
+        return element;
+    }
+  }
+}
+
+class CardContentRequestParameters{
+  static String from(CardContentDataType d){
+    switch(d){
+      case CardContentDataType.Tags:
+        return "locations_by_tag_nearby;locationmetrics_by_tag_nearby;sensordatacloud_by_tag_nearby";
+      case CardContentDataType.SensorData:
+        return "realtime_index_location;last24h_graph_location;comparison_yearly_monthly;averages_by_daterange;averages_by_something";
+      case CardContentDataType.WithinCity:
+        return "";
+      case CardContentDataType.NearbyCities:
+        return "";
+      default:
+        return "<null>";
+    }
+  }
 }
 
 class ViewCardContent extends StatefulWidget{
@@ -105,7 +128,7 @@ class _ViewCardContentState extends State<ViewCardContent>{
     await ApiRequests.call("/api/v1/data/ui_feed/${widget.type.toLower()}",{
       "dataFrom":widget.queryData.toString(),
       "location":"{\"latitude\":${_curr_location?.latitude},\"longitude\":${_curr_location?.longitude}}",
-      "queryFields": "locations_by_tag_nearby;locationmetrics_by_tag_nearby;sensordatacloud_by_tag_nearby"
+      "queryFields": CardContentRequestParameters.from(widget.type)
       /*
       locations_by_tag_nearby             Local que possui a tag. Mostrar 3 primeiros, 4° botão "carregar o resto" se tiver mais. "carregar cidades proximas" se acabar.
       location_metrics_by_tag_nearby      "Praias estão de acordo com a especificação da maioria dos dados obtidos". Essa parte é mais 'informação' do q dados.
@@ -179,7 +202,7 @@ class _ViewCardContentState extends State<ViewCardContent>{
           displacement: 80,
           onRefresh:(){return _fetch_card_data();},
           child:ListView.builder(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.fromLTRB(15,0,15,0),
             itemCount: cardTopics.length(),
             itemBuilder: (BuildContext context, int index) => cardTopics.item(index),
           ),

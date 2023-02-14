@@ -51,7 +51,7 @@ class _SettingsPageState extends State<SettingsPage>{
                   children: [
                     Expanded(
                       child: Container(
-                        child: Text("Localização",style: TextStyle(
+                        child: Text("Precisão da localização:",style: TextStyle(
                           fontSize: 20,
                         ),),
                       ),
@@ -64,9 +64,19 @@ class _SettingsPageState extends State<SettingsPage>{
                           _isSelected[index] = !_isSelected[index];
                         });
                       },
-                      children: const <Widget>[
-                        Icon(Icons.signal_cellular_4_bar),
-                        Icon(Icons.gps_fixed),
+                      children: <Widget>[
+                        Column(
+                          children:const [
+                            Icon(Icons.signal_cellular_4_bar),
+                            Text("Cellular"),
+                          ]
+                        ),
+                        Column(
+                          children:const [
+                            Icon(Icons.gps_fixed),
+                            Text("GPS"),
+                          ],
+                        ),
                       ],
                     ),
                   ],
@@ -76,24 +86,40 @@ class _SettingsPageState extends State<SettingsPage>{
             Card(
               elevation: 10,
               child: Padding(
-                padding: EdgeInsets.all(30),
-                child: DropdownButton(
-                  onChanged: (int? value) {
-                    setState(() {
-                      _dropdownIsSelected=value;
-                    });
-                  },
-                  value: _dropdownIsSelected,
-                  iconEnabledColor: Colors.green,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white,
-                  ),
-                  isExpanded: true,
-                  items: const [
-                    DropdownMenuItem(value: 0,child: Text("Item 1",style: TextStyle(fontSize: 15)),),
-                    DropdownMenuItem(value: 1,child: Text("Item 2",style: TextStyle(fontSize: 15)),),
-                    DropdownMenuItem(value: 2,child: Text("Item 3",style: TextStyle(fontSize: 15)),),
+                padding: const EdgeInsets.all(30),
+                child: Row(
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.contain,
+                      alignment: Alignment.centerLeft,
+                      child:Container(child: Text("Tipo de card\nna tela inicial:",textAlign: TextAlign.center,style: TextStyle(
+                        fontSize: 20,
+                      ),),),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(20,0,0,0),
+                        child: DropdownButton(
+                          onChanged: (int? value) {
+                            setState(() {
+                              _dropdownIsSelected=value;
+                            });
+                          },
+                          value: _dropdownIsSelected,
+                          iconEnabledColor: Colors.green,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.white,
+                          ),
+                          isExpanded: true,
+                          items: const [
+                            DropdownMenuItem(value: 0,child: Text("Wide cards",style: TextStyle(fontSize: 15)),),
+                            DropdownMenuItem(value: 1,child: Text("Square cards",style: TextStyle(fontSize: 15)),),
+                          ],
+                        ),
+                      ),
+                    ),
+
                   ],
                 ),
               ),
@@ -103,8 +129,8 @@ class _SettingsPageState extends State<SettingsPage>{
               child: Padding(
                 padding: EdgeInsets.all(30),
                 child: ElevatedButton(
-                  onPressed: () {  },
-                  child: Text("Botão elevado"),
+                  onPressed: () {},
+                  child: Text("Apagar Cache?"),
 
                 ),
               ),

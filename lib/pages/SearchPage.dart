@@ -88,7 +88,7 @@ class _SearchPageState extends State<SearchPage>{
             itemBuilder: (BuildContext context,int index)=>Card(
               elevation: 10,
               child: Padding(
-                padding: EdgeInsets.all(30),
+                padding: const EdgeInsets.all(30),
                 child: Column(
                   children: [
                     Text("Localização resultante da pesquisa - ${index}"),

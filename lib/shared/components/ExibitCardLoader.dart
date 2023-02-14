@@ -21,6 +21,27 @@ class ExibitCardLoader{
   //static late List<dynamic> _blur_hash_listing = [];
   void initializer(Map<String,dynamic> cards_data,BuildContext context) {
     _list.clear();
+    BlurHashProvider bhp = BlurHashProvider();
+    cards_data.forEach((key, list)=>
+        list.forEach((value)=>
+            _list.add(ExibitCard(
+              parentContext: context,
+              title: ExibitCardContentPicker.from(CardContentOpt.TITLE, CardContentDataType.fromString(key), value),
+              description: ExibitCardContentPicker.from(CardContentOpt.DESCRIPTION,CardContentDataType.fromString(key), value),
+              blurShadowHash: bhp.pick(),
+              action: CardContentDataType.fromString(key)!=null?() async {
+                await Navigator.push(context,
+                    MaterialPageRoute(builder: (BuildContext c) {
+                      return ViewCardContent(CardContentDataType.fromString(key)!,value);
+                    }));
+              }:null,
+            )),)
+    );
+
+    _list.isNotEmpty?_list.last.isLast=true:null;
+  }
+  void legacyInitializer(Map<String,dynamic> cards_data,BuildContext context) {
+    _list.clear();
     List<dynamic> tags = cards_data["tags"];
     List<dynamic> tags_en = cards_data["tags_en"];
     List<dynamic> sensor_data = cards_data["sensor_data"];
@@ -111,12 +132,13 @@ class ExibitCardLoader{
     _list.isNotEmpty?_list.last.isLast=true:null;
   }
 
-  List<ExibitCard> toList(){return _list;}
+  List<ExibitCard> get toList => _list;
 
   ExibitCard item(int i){return _list[i];}
 
-  int length(){
+  int get length => _list.length;
+  /*int length(){
     return _list.length;
-  }
+  }*/
 
 }
