@@ -53,6 +53,7 @@ dependencies:
   json_dynamic_widget: ^5.1.2+6
   syncfusion_flutter_charts: ^20.4.49
   fl_chart: ^0.60.0
+  flutter_walkthrough_screen: ^2.0.2
 
 dev_dependencies:
   flutter_test:

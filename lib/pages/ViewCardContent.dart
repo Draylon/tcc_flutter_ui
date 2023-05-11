@@ -9,7 +9,7 @@ import '../shared/components/LoadingFailed.dart';
 import '../shared/components/LoadingIndicator.dart';
 import '../shared/control/LocationHandler.dart';
 
-enum CardContentDataType{
+/*enum CardContentDataType{
   Tags,SensorData,WithinCity,NearbyCities;
   @override
   String toString(){
@@ -39,16 +39,24 @@ class CardContentRequestParameters{
         return "<null>";
     }
   }
-}
+}*/
 
 class ViewCardContent extends StatefulWidget{
-  CardContentDataType type;
-  dynamic data;
-  dynamic queryData;
-  ViewCardContent.split(this.type,this.data,this.queryData, {Key? key}) : super(key: key);
-  ViewCardContent(this.type,this.data, {Key? key}):super(key: key){
-    queryData=data;
-  }
+  //CardContentDataType type;
+  String? db_id;
+  String? title;
+  String? description;
+  String? detailed;
+
+  /* exibits: {
+    _id: 645023174ce832b6deea94e4,
+    dataset_interval: last1h,
+    dataset_data_type: all_related_tags;traffic_info;crowd_info,
+    data_display: radial,
+    data_parsing_functions: [tags_are_level_percentage]
+  }*/
+
+  ViewCardContent({Key? key,this.db_id,this.title,this.description,this.detailed,}):super(key: key);
 
   @override
   State<StatefulWidget> createState() => _ViewCardContentState();
@@ -125,10 +133,8 @@ class _ViewCardContentState extends State<ViewCardContent>{
     // api de /api/ui_data/$tags pra pegar uma lista de métodos novos disponíveis
     // para o tópico de tags
 
-    await ApiRequests.call("/api/v1/data/ui_feed/${widget.type.toLower()}",{
-      "dataFrom":widget.queryData.toString(),
+    await ApiRequests.call("/api/v1/data/feed/${widget.db_id}",{
       "location":"{\"latitude\":${_curr_location?.latitude},\"longitude\":${_curr_location?.longitude}}",
-      "queryFields": CardContentRequestParameters.from(widget.type)
       /*
       locations_by_tag_nearby             Local que possui a tag. Mostrar 3 primeiros, 4° botão "carregar o resto" se tiver mais. "carregar cidades proximas" se acabar.
       location_metrics_by_tag_nearby      "Praias estão de acordo com a especificação da maioria dos dados obtidos". Essa parte é mais 'informação' do q dados.
@@ -139,8 +145,15 @@ class _ViewCardContentState extends State<ViewCardContent>{
       print("Request completed");
       if (api_response.statusCode == 200) {
         try{
+          print(api_response);
           azure_json = json.decode(api_response.body);
-          cardTopics.initializer(azure_json,context);
+          cardTopics.setParent(widget);
+          cardTopics.initializer(
+              this.widget.title??"no title",
+              this.widget.detailed??"no details",
+              this.widget.description??"no description",
+              azure_json,context
+          );
           setState(() {
             menuLoaded=2;
             //azure_json.map((e) => ExibitCard.fromJson(e)).toList();
@@ -150,6 +163,7 @@ class _ViewCardContentState extends State<ViewCardContent>{
           setState((){failureMessage="API returned invalid data";menuLoaded=1;});
         }
       }else{
+        print("did not complete successfully");
         setState((){failureMessage="API returned invalid code";menuLoaded=1;});
       }
       return true;
@@ -173,11 +187,11 @@ class _ViewCardContentState extends State<ViewCardContent>{
         headerSliverBuilder: (ctx,isScrolled)=>[
           SliverAppBar(
             title: Container(
-              padding: EdgeInsets.fromLTRB(15, 0,15, 0),
+              padding: const EdgeInsets.fromLTRB(15, 0,15, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Text(widget.data,style: TextStyle(
+                  Text(widget.title ?? "No Title",style: const TextStyle(
                     letterSpacing: 3,
                     color: Colors.white,
                     fontSize: 30,

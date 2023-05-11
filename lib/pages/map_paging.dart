@@ -1,5 +1,6 @@
 
 
+import 'package:http/http.dart';
 import 'dart:io';
 import 'dart:ui';
 
@@ -128,7 +129,7 @@ class _PageMapState extends State<PageMap> {
       body: Stack(
         alignment: Alignment.topCenter,
         children: [
-          MapFragment(title: "yikes",),
+          MapFragment(mode: MapFragmentMode.MAP,),
           Container(
             margin: EdgeInsets.fromLTRB(12,0,12,12),
             //padding: EdgeInsets.fromLTRB(12,12,12,12),

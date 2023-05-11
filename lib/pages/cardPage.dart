@@ -6,17 +6,20 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ui/api/call.dart';
+import 'package:ui/pages/HelpPage.dart';
 import 'package:ui/pages/SearchPage.dart';
 import 'package:ui/pages/map_paging.dart';
+import 'package:ui/pages/paging_fragments/map.dart';
 import 'package:ui/shared/components/exibit_card.dart';
 import 'package:ui/pages/SettingsPage.dart';
 import 'package:ui/shared/components/LoadingIndicator.dart';
 import 'package:ui/shared/control/LocationHandler.dart';
 import 'package:location/location.dart';
 
-import '../shared/components/ExibitCardLoader.dart';
 import '../shared/components/LoadingFailed.dart';
+import 'package:latlong2/latlong.dart';
 
 class CardPage extends StatefulWidget {
   CardPage({Key? key, required this.title}) : super(key: key);
@@ -33,6 +36,11 @@ class _CardPageState extends State<CardPage> {
   void initState() {
     super.initState();
 
+    //Set intro to done/true
+    SharedPreferences.getInstance().then((prefs) => {
+      prefs.setBool('intro_screen',true)
+    });
+
     _fetch_card_data();
     //AppDatabase().openDb().whenComplete(loaded);
   }
@@ -47,10 +55,60 @@ class _CardPageState extends State<CardPage> {
   LocationData? _curr_location;
   String uiCityName="Local não definido";
   bool locationAvaliable=false;
+  bool manually_set = false;
+
+  _manual_location_data(context) async {
+      LatLng? result = await Navigator.push(context, MaterialPageRoute(
+        builder: (BuildContext context) => MapFragment(mode: MapFragmentMode.LOCATIONPICKER,),
+        fullscreenDialog: true,)
+      );
+      result!=null?
+      _curr_location = LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude})
+          :Scaffold.of(context).showSnackBar(const SnackBar(content: Text("Cancelled"),duration: Duration(seconds: 3),));
+
+      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((apiResponse){
+        if (apiResponse.statusCode == 200) {
+          String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
+
+          try{
+            geocode_json = json.decode(apiResponseBody);
+          }on Exception catch(e){
+            print("internal error:");
+            print(e);
+            setState(() {
+              locationAvaliable=false;
+            });
+          }
+          print("Geocoding completed");
+        }else{
+          print("request invalid: "+apiResponse.statusCode.toString());
+          setState(() {
+            locationAvaliable=false;
+          });
+        }
+        //return true;
+      },onError: (e){
+        print("major error:");
+        print(e);
+        setState(() {
+          locationAvaliable=false;
+        });
+      });
+
+      setState(() {
+        uiCityName=geocode_json['county'];
+        manually_set = true;
+        locationAvaliable=true;
+      });
+  }
 
   _fetch_location_data({bool precision=false}) async{
-
-    String whois_params;
+    manually_set?{
+      locationAvaliable=false,
+      geocode_json.clear()
+    }:null;
+    manually_set = false;
+    String whoisParams;
 
     // check permission
     print("check permission");
@@ -94,12 +152,12 @@ class _CardPageState extends State<CardPage> {
     //_last_location?.longitude!=curr_location?.longitude
     if(locationAvaliable && geocode_json.isEmpty){
       print("retrieve geocoding");
-      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((api_response){
-        if (api_response.statusCode == 200) {
-          String api_response_body = api_response.body.replaceAll('null',"\"null\"");
+      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((apiResponse){
+        if (apiResponse.statusCode == 200) {
+          String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
 
           try{
-            geocode_json = json.decode(api_response_body);
+            geocode_json = json.decode(apiResponseBody);
           }on Exception catch(e){
             print("internal error:");
             print(e);
@@ -109,7 +167,7 @@ class _CardPageState extends State<CardPage> {
           }
           print("Geocoding completed");
         }else{
-          print("request invalid: "+api_response.statusCode.toString());
+          print("request invalid: "+apiResponse.statusCode.toString());
           setState(() {
             locationAvaliable=false;
           });
@@ -128,14 +186,14 @@ class _CardPageState extends State<CardPage> {
     //==============================
 
     if(locationAvaliable){
-      whois_params='ip,connection,success,type';
+      whoisParams='ip,connection,success,type';
     }else{
-      whois_params='ip,connection,success,type,country,city,latitude,longitude';
+      whoisParams='ip,connection,success,type,country,city,latitude,longitude';
     }
 
     if(whois_json.isEmpty) {
-      await LocationHandler.cached_isp_data(whois_params).then((whois_response) {
-        whois_json = whois_response;
+      await LocationHandler.cached_isp_data(whoisParams).then((whoisResponse) {
+        whois_json = whoisResponse;
         return true;
       }, onError: (e) {
         print("Error on whois fetch:");
@@ -154,17 +212,17 @@ class _CardPageState extends State<CardPage> {
 
 
   _fetch_card_data() async{
-    await _fetch_location_data();
-    Map<String,dynamic> azure_json={};
+    if(!locationAvaliable)await _fetch_location_data();
+    Map<String,dynamic> azureJson={};
     if(whois_json.isEmpty && !locationAvaliable){
       setState((){failureMessage="Problema no apontamento da região";menuLoaded=1;});
       return;
     }
     print("Obtendo cards");
-    Map<String,dynamic>? api_requests_query;
+    Map<String,dynamic>? apiRequestsQuery;
     if(locationAvaliable){
       print("Precise locations avaliable");
-      api_requests_query={
+      apiRequestsQuery={
         'ip': whois_json['ip'],
         'country': geocode_json['country'],
         'city': geocode_json['county'],
@@ -177,7 +235,7 @@ class _CardPageState extends State<CardPage> {
 
     }else{
       print("Location unavaliable, Sticking to whois");
-      api_requests_query={
+      apiRequestsQuery={
         'ip': whois_json['ip'],
         'country': whois_json['country'],
         'city': whois_json['city'],
@@ -188,12 +246,14 @@ class _CardPageState extends State<CardPage> {
 
     }
 
-    await ApiRequests.call("/api/v2/ui_data/main_menu",api_requests_query).then((api_response) {
+    await ApiRequests.call("/api/v2/ui_data/main_menu",apiRequestsQuery).then((apiResponse) {
       print("Request completed");
-      if (api_response.statusCode == 200) {
+      if (apiResponse.statusCode == 200) {
         try{
-          azure_json = json.decode(api_response.body);
-          avaliableCards.initializer(azure_json,context);
+          azureJson = json.decode(apiResponse.body);
+          print(azureJson);
+          avaliableCards.initializer(azureJson,context);
+
           setState(() {
             menuLoaded=2;
             //azure_json.map((e) => ExibitCard.fromJson(e)).toList();
@@ -229,27 +289,37 @@ class _CardPageState extends State<CardPage> {
     duration: Duration(seconds:4),
   );
 
+  String _getTime(){
+    DateTime now = DateTime.now();
+    if(now.hour < 12) return "Bom dia.";
+    if(now.hour < 18) return "Boa tarde.";
+    return "Boa noite.";
+  }
 
   _buildPage(){
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (ctx,isScrolled)=>[
           SliverAppBar(
+            automaticallyImplyLeading: false,
             title: Container(
               padding: const EdgeInsets.fromLTRB(15, 0,15, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Expanded(
+                  const Expanded(
                     child: Text("Titulo?",style: TextStyle(
                       fontSize: 26,
-                      color: Colors.white,
                     ),),
                   ),
                   FittedBox(
                     alignment: Alignment.centerRight,
                     child: MaterialButton(
                       onPressed: ()=> _fetch_location_data(precision: true),
+                      onLongPress:  () async {
+                        await _manual_location_data(ctx);
+                        _fetch_card_data();
+                    },
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
                         decoration: const BoxDecoration(
@@ -265,9 +335,9 @@ class _CardPageState extends State<CardPage> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.fromLTRB(10,0,10,0),
-                              child: locationAvaliable?const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
+                              child: locationAvaliable?manually_set?const Icon(Icons.location_pin):const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
                             ),
-                            Text(uiCityName,style: TextStyle(
+                            Text(uiCityName,style: const TextStyle(
                               fontSize: 20
                             ),),
                           ],
@@ -294,17 +364,28 @@ class _CardPageState extends State<CardPage> {
                 direction: Axis.vertical,
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text("Como funciona?",style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w300,
-                    wordSpacing: 3,
-                  ),),
-                  Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vel mauris velit. Fusce non ullamcorper nibh. Nunc sit amet lacus pharetra, volutpat leo et, rhoncus ipsum. Nunc nisl nisi, posuere sed lorem eu, pellentesque finibus tellus. Nulla quis auctor odio. Nam commodo fermentum tortor nec auctor. Fusce molestie sagittis libero eget fringilla. Aenean ut tristique ligula. In sit amet velit sagittis, iaculis urna sed, placerat ante. Proin sollicitudin, dui a porta scelerisque, lorem nunc bibendum ligula, quis luctus sapien libero ut quam. Duis et enim ante. Praesent pharetra metus nec arcu tincidunt, ac iaculis nunc scelerisque. Maecenas porttitor ipsum eget tincidunt mattis. Vestibulum egestas rhoncus ex, at aliquam nunc fermentum vitae.",
-                    textAlign: TextAlign.justify,
-                    style: TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w200
+                children: [
+                  Row(
+                    children: [
+                      Text(_getTime(),style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w300,
+                        wordSpacing: 3,
+                      ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0,15,0,0),
+                    child: Text(
+                      menuLoaded==0?
+                      "Obtendo serviços disponíveis":
+                      menuLoaded==1?"Serviços indisponíveis, tente novamente":"Consulte dentre os itens disponíveis abaixo",
+                      textAlign: TextAlign.justify,
+                      style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w200
+                      ),
                     ),
                   ),
                 ],
@@ -313,23 +394,23 @@ class _CardPageState extends State<CardPage> {
             menuLoaded==0?
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: const [
                   SizedBox.square(
-                    child: const LoadingIndicator(),
                     dimension: 150,
+                    child: LoadingIndicator(),
                   )
                 ],
               )
             :menuLoaded==1?
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox.square(
-                  child: LoadingFailed(message: failureMessage,),
-                  dimension: 150,
-                )
-              ],
-            ):
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox.square(
+                    child: LoadingFailed(message: failureMessage,),
+                    dimension: 150,
+                  )
+                ],
+              ):
             MasonryGridView.count(
                 padding: const EdgeInsets.all(20),
                 shrinkWrap: true,
@@ -375,6 +456,11 @@ class _CardPageState extends State<CardPage> {
                     children: [
                       // não sei oq por aqui kkkk
                       IconButton(onPressed: () async =>{
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (BuildContext c) {
+                              return HelpPage();
+                            }))
+                      }, icon: const Icon(Icons.help_outline,),),IconButton(onPressed: () async =>{
                         await Navigator.push(context,
                             MaterialPageRoute(builder: (BuildContext c) {
                               return SettingsPage();

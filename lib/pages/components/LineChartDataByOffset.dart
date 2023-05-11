@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
   final List<List<double>> data_list;
   final bool reversed;
-  const _LineChartDataByOffset_LineChart1({required this.isShowingMainData,required this.data_list,required this.reversed});
+  final bool isRelative;
+  const _LineChartDataByOffset_LineChart1({required this.isShowingMainData,required this.data_list,required this.reversed,required this.isRelative});
 
   final bool isShowingMainData;
 
@@ -43,8 +44,8 @@ class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
     lineBarsData: lineBarsData1,
     minX: _xdmin,
     maxX: _xdmax,
-    maxY: _ydmax+1,
-    minY: _ydmin-1,
+    maxY: _ydmax+50,
+    minY: _ydmin-50,
   );
 
   LineChartData get sampleData2 => LineChartData(
@@ -55,8 +56,8 @@ class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
     lineBarsData: lineBarsData2,
     minX: _xdmin,
     maxX: _xdmax,
-    maxY: _ydmax+1,
-    minY: _ydmin-1,
+    maxY: _ydmax+50,
+    minY: _ydmin-50,
   );
 
   LineTouchData get lineTouchData1 => LineTouchData(
@@ -153,7 +154,7 @@ class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
   SideTitles leftTitles() => SideTitles(
     getTitlesWidget: leftTitleWidgets,
     showTitles: true,
-    interval: 1,
+    interval: 30,
     reservedSize: 40,
   );
 
@@ -177,20 +178,29 @@ class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
 
     String mDate;
     double vprint=value;
+
+    DateTime now = DateTime.parse("2023-05-07T16:50:00.000+00:00");
+    now = now.subtract(Duration(seconds: value.toInt()));
+
     if(vprint<0)vprint*=-1;
     vprint>86400?{vprint/=86400, mDate="dias"}:vprint>3600?{vprint/=3600, mDate="hrs"}:vprint>60? {vprint/=60, mDate="min"}:mDate="segs";
 
-    return SideTitleWidget(
+
+    return isRelative? SideTitleWidget(
       axisSide: meta.axisSide,
       space: 10,
       child: Text("${vprint.toInt()} $mDate", style: style),
+    ) : SideTitleWidget(
+      axisSide: meta.axisSide,
+      space: 10,
+      child: Text("${now.hour}:${now.minute}", style: style),
     );
   }
 
   SideTitles get bottomTitles => SideTitles(
     showTitles: true,
     reservedSize: 32,
-    interval: 400,
+    interval: 12000,
     getTitlesWidget: bottomTitleWidgets,
   );
 
@@ -199,8 +209,7 @@ class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
   FlBorderData get borderData => FlBorderData(
     show: true,
     border: Border(
-      bottom:
-      BorderSide(color: Colors.grey.withOpacity(0.2), width: 4),
+      bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 4),
       left: const BorderSide(color: Colors.transparent),
       right: const BorderSide(color: Colors.transparent),
       top: const BorderSide(color: Colors.transparent),
@@ -311,7 +320,8 @@ class _LineChartDataByOffset_LineChart1 extends StatelessWidget {
 class LineChartDataByOffset extends StatefulWidget {
   final String title;
   final bool reversed;
-  const LineChartDataByOffset({super.key,required this.title, required this.data_list,this.reversed=false});
+  final bool isRelative;
+  const LineChartDataByOffset({super.key,required this.title, required this.data_list,this.reversed=false, required this.isRelative});
   final List<List<double>> data_list;
 
   @override
@@ -355,7 +365,7 @@ class _DataByOffsetState1 extends State<LineChartDataByOffset> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 16, left: 6),
-                  child: _LineChartDataByOffset_LineChart1(isShowingMainData: isShowingMainData,data_list: widget.data_list,reversed: widget.reversed,),
+                  child: _LineChartDataByOffset_LineChart1(isShowingMainData: isShowingMainData,data_list: widget.data_list,reversed: widget.reversed,isRelative: widget.isRelative),
                 ),
               ),
               /*const SizedBox(
@@ -363,16 +373,20 @@ class _DataByOffsetState1 extends State<LineChartDataByOffset> {
               ),*/
             ],
           ),
-          IconButton(
-            icon: Icon(
-              Icons.refresh,
-              color: Colors.white.withOpacity(isShowingMainData ? 1.0 : 0.5),
+          Align(
+            alignment: Alignment.topRight,
+
+            child: IconButton(
+              icon: Icon(
+                Icons.swap_horiz,
+                color: Colors.white.withOpacity(isShowingMainData ? 1.0 : 0.5),
+              ),
+              onPressed: () {
+                setState(() {
+                  isShowingMainData = !isShowingMainData;
+                });
+              },
             ),
-            onPressed: () {
-              setState(() {
-                isShowingMainData = !isShowingMainData;
-              });
-            },
           )
         ],
       ),

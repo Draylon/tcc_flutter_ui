@@ -16,13 +16,21 @@ import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:provider/provider.dart';
 import 'package:ui/api/call.dart';
+import 'package:ui/shared/control/LocationHandler.dart';
 
 import '../../shared/components/LoadingIndicator.dart';
 import '../../shared/state/GeneralProvider.dart';
 
+enum MapFragmentMode{
+  MAP,LOCATIONPICKER
+}
+
+
+
 class MapFragment extends StatefulWidget {
-  final String title;
-  MapFragment({Key? key, required this.title}) : super(key: key);
+  final String? title;
+  final MapFragmentMode mode;
+  MapFragment({Key? key,required this.mode,this.title}) : super(key: key);
 
   @override
   _MapFragState createState() => _MapFragState();
@@ -38,10 +46,11 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   MapController mapctrl = MapController();
   late Marker userMarker;
   List<Marker> markers = [];
+  List<LatLng> markersPointers = [];
 
   Location _locationService = Location();
   LocationData? _userLocation;
-  StreamSubscription? _locSub;
+  StreamSubscription<LocationData>? _locSub = null;
 
   IconData? _locationStatus = Icons.location_searching;
 
@@ -54,18 +63,31 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   DraggableScrollableController _pin_ctrl = DraggableScrollableController();
 
 
-  //========================================================
+  @override
+  void dispose() {
+    _locSub!=null?_locSub?.cancel():null;
+    super.dispose();
+  } //========================================================
+
+
 
   @override
   void initState() {
-
+    markersPointers.add(LatLng(-26.2542072,-48.8555393));
     userMarker=Marker(
         width: 40,
         height: 40,
         point: LatLng(-26.2542072,-48.8555393), //point: LatLng(-26.2861838,-48.9949695),
         builder: (ctx) => GestureDetector(
-          child: Icon(Icons.location_on_outlined,size: 40,color: Colors.blueAccent,),
-          onTap: ()=>ScaffoldMessenger.of(context).showSnackBar(markerClicked),
+          child: const Icon(Icons.location_on_outlined,size: 55,color: Colors.blueAccent,),
+          onTap: ()=>{
+            print(ctx),
+            print(ctx.widget),
+            print(ctx.owner),
+            ScaffoldMessenger.of(ctx).showSnackBar(markerClicked),
+            _animatedMapMove_index(markers.length + 0, 15)
+            //_animatedMapMove(LatLng(-26.2542072,-48.8555393), 15),
+          },
         ) //builder: (ctx) => const FlutterLogo( textColor: Colors.blue,  key: ObjectKey(Colors.blue), ),
     );
 
@@ -74,7 +96,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
     _initLocationService();
 
     markers = [userMarker];
-    _fetch_markers();
+    if(widget.mode == MapFragmentMode.MAP) _fetch_markers();
     //AppDatabase().openDb().whenComplete(loaded);
   }
 
@@ -82,7 +104,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   Widget build(BuildContext context) {
     super.build(context);
     //ImagePicker picker = ImagePicker();
-    return !_isLoading ? _build_screen() : Center(child: CircularProgressIndicator());
+    return !_isLoading ? _build_screen() : const Center(child: CircularProgressIndicator());
   }
 
   void _parse_markers(String responseBody) {
@@ -94,8 +116,12 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
               height: 40,
               point: LatLng(e["location"]["coordinates"][0],e["location"]["coordinates"][1]), //point: LatLng(-26.2861838,-48.9949695),
               builder: (ctx) => GestureDetector(
-                child: Icon(Icons.location_on_outlined,size: 40,color: Colors.blueAccent,),
-                onTap: ()=>ScaffoldMessenger.of(context).showSnackBar(markerClicked),
+                child: const Icon(Icons.location_on_outlined,size: 55,color: Colors.blueAccent,),
+                onTap: ()=>{
+                  ScaffoldMessenger.of(ctx).showSnackBar(markerClicked),
+                  _animatedMapMove_index(markers.length, 15)
+                  //_animatedMapMove(LatLng(e["location"]["coordinates"][0],e["location"]["coordinates"][1]), 15)
+                },
               ) //builder: (ctx) => const FlutterLogo( textColor: Colors.blue,  key: ObjectKey(Colors.blue), ),
           )
       );
@@ -150,16 +176,64 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
       body: Center(
         child: _build_page(orientation),
       ),
+      appBar: widget.mode!=MapFragmentMode.LOCATIONPICKER?null:
+      AppBar(title: Text("Selecione um local no mapa")),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton:
+        widget.mode == MapFragmentMode.MAP?
+        Container(
+            margin: const EdgeInsets.fromLTRB(0, 0, 0, 45),
+            child: FloatingActionButton(
+              heroTag: null,
+              onPressed: () async {
+                /*final XFile? image = await picker.pickImage(source: ImageSource.camera,preferredCameraDevice: CameraDevice.rear);
+                    await _newImage(image);*/
+                //mapctrl.move(markers[0].point, 15);
+                //ScaffoldMessenger.of(context).showSnackBar(imageCanceled);
+                _animatedMapMove(userMarker.point, 15);
+                _initLocationService();
+              },
+              tooltip: 'Your Location',
+              child: Icon(_locationStatus,size: 30,),
+            )
+        ):widget.mode == MapFragmentMode.LOCATIONPICKER?
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            FloatingActionButton(
+              heroTag: null,
+              onPressed: () async {
+                /*final XFile? image = await picker.pickImage(source: ImageSource.camera,preferredCameraDevice: CameraDevice.rear);
+                    await _newImage(image);*/
+                //mapctrl.move(markers[0].point, 15);
+                //ScaffoldMessenger.of(context).showSnackBar(imageCanceled);
+                _animatedMapMove(userMarker.point, 15);
+                _initLocationService();
+              },
+              tooltip: 'Your Location',
+              child: Icon(_locationStatus,size: 30,),
+            ),
+            FloatingActionButton(
+              heroTag: null,
+              onPressed: () async {
+                Navigator.pop(context,mapctrl.center);
+              },
+              tooltip: 'Confirm',
+              child: const Icon(Icons.check,size: 30,),
+            ),
+          ],
+        ):null,
 
-      floatingActionButton: Container(
+
+      /*floatingActionButton2: Container(
         margin: EdgeInsets.fromLTRB(0, 0, 0, 45),
         child:
-          FloatingActionButton(
+        widget.mode == MapFragmentMode.MAP? FloatingActionButton(
             heroTag: null,
             onPressed: () async {
-              /*final XFile? image = await picker.pickImage(source: ImageSource.camera,preferredCameraDevice: CameraDevice.rear);
-              await _newImage(image);*/
+              *//*final XFile? image = await picker.pickImage(source: ImageSource.camera,preferredCameraDevice: CameraDevice.rear);
+              await _newImage(image);*//*
               //mapctrl.move(markers[0].point, 15);
               //ScaffoldMessenger.of(context).showSnackBar(imageCanceled);
               _animatedMapMove(userMarker.point, 15);
@@ -167,8 +241,15 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
             },
             tooltip: 'Your Location',
             child: Icon(_locationStatus,size: 30,),
-          ),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+          ) : FloatingActionButton(
+            heroTag: null,
+            onPressed: () async {
+              Navigator.pop(context,"location_point");
+            },
+            tooltip: 'Confirm',
+            child: const Icon(Icons.check,size: 30,),
+          )
+      )*/ // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -216,41 +297,15 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
 
 
   _build_basemap(){
-    return Container(
-      child: FlutterMap(
-      mapController: mapctrl,
-      options: MapOptions(
-        interactiveFlags: InteractiveFlag.all,
-        center: LatLng(-26.2542072,-48.8555393),
-        zoom: 15,
-        maxZoom: 15,
-        minZoom: 12,
-      ),
-
-      layers: [
-        MarkerLayerOptions(markers: markers),
-      ],
-
-      children: [
-        TileLayerWidget(
-          options: TileLayerOptions(
-            urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',backgroundColor: Colors.black54,
-            //tilesContainerBuilder: darkModeTilesContainerBuilder,
-          ),
-        ),
-      ],
-      /*layers: [
-
-        TileLayerOptions(
-          urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',backgroundColor: Colors.black54,
-          tilesContainerBuilder: darkModeTilesContainerBuilder,
-
-        ),
-        MarkerLayerOptions(markers: markers),
-
-      ],*/
-    ),
-    );
+    return widget.mode == MapFragmentMode.MAP ? _build_fluttermap()
+    :widget.mode == MapFragmentMode.LOCATIONPICKER?
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            _build_fluttermap(),
+            const Icon(Icons.location_on,size: 55,color: Colors.blueAccent,),
+          ],
+        ):null;
   }
 
   _build_basemap2(){
@@ -325,6 +380,43 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
     );
   }
 
+  _build_fluttermap()=>FlutterMap(
+    mapController: mapctrl,
+    options: MapOptions(
+      interactiveFlags: InteractiveFlag.all,
+      center: LatLng(-26.2542072,-48.8555393),
+      zoom: 15,
+      maxZoom: 15,
+      minZoom: 12,
+    ),
+
+    layers: [
+      MarkerLayerOptions(markers: markers),
+    ],
+
+    children: [
+      TileLayerWidget(
+        options: TileLayerOptions(
+          urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',backgroundColor: Colors.black54,
+          //tilesContainerBuilder: darkModeTilesContainerBuilder,
+        ),
+      ),
+    ],
+    /*layers: [
+
+      TileLayerOptions(
+        urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',backgroundColor: Colors.black54,
+        tilesContainerBuilder: darkModeTilesContainerBuilder,
+
+      ),
+      MarkerLayerOptions(markers: markers),
+
+    ],*/
+  );
+
+  void _animatedMapMove_index(int i,double destZoom){
+    return _animatedMapMove(markersPointers[i], destZoom);
+  }
   void _animatedMapMove(LatLng destLocation, double destZoom) {
     final latTween = Tween<double>(
         begin: mapctrl.center.latitude, end: destLocation.latitude);
@@ -355,6 +447,8 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   }
 
   void _initLocationService() async {
+
+
     /*_locSub = Location.instance.onLocationChanged.listen((e) {
       setState(() {
         _userLocation = e;
@@ -390,7 +484,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
               _userLocation = location;
               userMarker.point.latitude =_userLocation!.latitude!;
               userMarker.point.longitude =_userLocation!.longitude!;
-              _locationService.onLocationChanged.listen((LocationData result) async {
+              _locSub = _locationService.onLocationChanged.listen((LocationData result) async {
                 if (mounted) {
                   setState(() {
                     _userLocation = result;

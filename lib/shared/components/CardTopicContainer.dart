@@ -5,6 +5,7 @@ import 'package:flutter_blurhash/flutter_blurhash.dart';
 import 'package:json_dynamic_widget/json_dynamic_widget.dart';
 
 import 'package:location/location.dart';
+import 'package:ui/pages/ViewCardContent.dart';
 import '../control/LocationHandler.dart';
 import 'BlurHashProvider.dart';
 import 'CardTopicFragment.dart';
@@ -14,8 +15,14 @@ import 'CardTopicFragment.dart';
 class CardTopicContainer{
   static final CardTopicContainer _instance = CardTopicContainer._internal();
 
+  ViewCardContent? _parent;
+
   factory CardTopicContainer(){
     return _instance;
+  }
+
+  void setParent(ViewCardContent parent){
+    _parent = parent;
   }
 
   bool _locationAvaliable=false;
@@ -65,12 +72,24 @@ class CardTopicContainer{
 
   static final List<CardTopicFragment> _list=[];
   //static late List<dynamic> _blur_hash_listing = [];
-  void initializer(List<dynamic> topic_data,BuildContext context) {
+  void initializer(
+      String title, String detailed, String description,
+      List<dynamic> topic_data,BuildContext context) {
     print(topic_data);
     _list.clear();
     topic_data.forEach((value) {
-      Map<String,dynamic> block = value ?? {"type":"","data":[]};
-      block["data"].forEach((block_u)=> _list.add(CardTopicFragment(type: CardTopicType.fromString(block["type"]),data:block_u)));
+      Map<String,dynamic> block = value ?? {"data":[[]],"passthrough":{}};
+      _list.add(CardTopicFragment(
+        title:title, detailed:detailed, description: description,
+
+        dataset_interval:block["passthrough"]["dataset_interval"],
+        dataset_data_type:block["passthrough"]["dataset_data_type"],
+        data_display: block["passthrough"]["data_display"],
+        static_input_data: block["passthrough"]["static_input_data"]??{},
+        data_parsing_functions: block["passthrough"]["data_parsing_functions"],
+        data: block["data"],
+      ));
+      //block["data"].forEach((block_u)=> _list.add(CardTopicFragment(type: CardTopicType.fromString(block["type"]),data:block_u)));
     });
   }
   /*void initializer2(Map<String,dynamic> topic_data,BuildContext context){
@@ -173,3 +192,44 @@ class CardTopicContainer{
     return _list.length;
   }
 }
+
+/*
+*
+* [
+  {
+    data: [
+      [
+        {data: 412.96, date: 2023-05-07T16:45:00.000Z},
+        {data: 413.16, date: 2023-05-07T16:40:00.000Z},
+        {data: 421.4, date: 2023-05-07T16:35:00.000Z},
+        {data: 419, date: 2023-05-07T16:30:00.000Z},
+        {data: 417.96, date: 2023-05-07T16:50:00.000Z}
+      ]
+    ],
+    passthrough: {
+      dataset_interval: last1h,
+      dataset_data_type: [all_related_tags, traffic_info, crowd_info],
+      data_display: radial,
+      data_parsing_functions: [tags_are_level_percentage]
+    }
+  },
+  {
+    data: [
+      [
+        {data: 412.96, date: 2023-05-07T16:45:00.000Z},
+        {data: 413.16, date: 2023-05-07T16:40:00.000Z},
+        {data: 421.4, date: 2023-05-07T16:35:00.000Z},
+        {data: 419, date: 2023-05-07T16:30:00.000Z},
+        {data: 417.96, date: 2023-05-07T16:50:00.000Z}
+      ]
+    ],
+    passthrough: {
+      dataset_interval: last24h,
+      dataset_data_type: [all_related_tags],
+      data_display: stacked_percentages_graph,
+      data_parsing_functions: [show_min_max_level_tag]
+    }
+  }
+]
+*
+* */

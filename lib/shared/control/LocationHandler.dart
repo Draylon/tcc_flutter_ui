@@ -25,13 +25,14 @@ class LocationHandler{
   }
 
   static Location _locationService = Location();
+  static StreamSubscription? _locSub;
   static LocationData? _locationData;
+  static Location get locationService => _locationService;
   static LocationData? get locationData => _locationData;
 
   static Future<Stream<LocationData>?> requestGPSListener({bool prompt=false}) async{
 
     try{
-
       PermissionStatus? perm = await checkGPSPermission();
       if(prompt){
         if(perm!=PermissionStatus.deniedForever){

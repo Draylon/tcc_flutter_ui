@@ -28,7 +28,9 @@ class _SettingsPageState extends State<SettingsPage>{
   _buildPage(){
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Settings",style: TextStyle(
+          title: Text("Settings",
+              style: TextStyle(
+                color: Theme.of(context).primaryColorDark,
               letterSpacing: 3
           )),
           automaticallyImplyLeading: false,
@@ -57,6 +59,7 @@ class _SettingsPageState extends State<SettingsPage>{
                       ),
                     ),
                     ToggleButtons(
+                      color: Theme.of(context).primaryColorDark,
                       renderBorder: false,
                       isSelected: _isSelected,
                       onPressed: (int index) {
@@ -98,8 +101,10 @@ class _SettingsPageState extends State<SettingsPage>{
                     ),
                     Expanded(
                       child: Padding(
+
                         padding: EdgeInsets.fromLTRB(20,0,0,0),
                         child: DropdownButton(
+
                           onChanged: (int? value) {
                             setState(() {
                               _dropdownIsSelected=value;
@@ -108,8 +113,8 @@ class _SettingsPageState extends State<SettingsPage>{
                           value: _dropdownIsSelected,
                           iconEnabledColor: Colors.green,
                           style: TextStyle(
+                            color: Theme.of(context).primaryColorDark,
                             fontSize: 15,
-                            color: Colors.white,
                           ),
                           isExpanded: true,
                           items: const [
