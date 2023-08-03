@@ -27,7 +27,9 @@ jobs:
       - name: Build Flutter
         uses: subosito/flutter-action@v1
         with:
+          flutter-version: '3.0.0'
           channel: 'stable'
+
       - run: flutter pub get
       - run: flutter build web --release
       - uses: actions/upload-artifact@v1
