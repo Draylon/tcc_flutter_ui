@@ -35,7 +35,7 @@ jobs:
       - uses: actions/upload-artifact@v1
         with:
           name: node-app
-          path: .
+          path: build/web/*
     
       - name: Create Github Release
         uses: ncipollo/release-action@v1
@@ -69,4 +69,4 @@ jobs:
           app-name: 'hyqn-ui-webapp'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BA88BB3FBAA14B8BAC583920B073AF2E }}
-          package: .
+          package: build/web/*
