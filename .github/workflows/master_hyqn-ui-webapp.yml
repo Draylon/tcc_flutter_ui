@@ -30,8 +30,8 @@ jobs:
           flutter-version: '3.0.0'
           channel: 'stable'
 
-      - run: flutter pub get
-      - run: flutter build web --release
+        - run: flutter pub get
+        - run: flutter build web --release
 
       - name: Upload artifact for Github Release and Deployment job
         uses: actions/upload-artifact@v2
@@ -44,7 +44,7 @@ jobs:
         with:
           artifacts: "."
           tag: v1.1.${{ github.run_number }}
-    
+
     
   deploy:
     runs-on: ubuntu-latest
@@ -66,4 +66,4 @@ jobs:
           app-name: 'hyqn-ui-webapp'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BA88BB3FBAA14B8BAC583920B073AF2E }}
-          package: build/web/*
+          package: .
