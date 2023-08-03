@@ -3,7 +3,7 @@ name: Mobile App
 on:
   push:
     branches:
-      - mobile
+      - master
 
 jobs:
   build:
