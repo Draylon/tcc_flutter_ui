@@ -29,9 +29,9 @@ jobs:
         with:
           flutter-version: '3.0.0'
           channel: 'stable'
-
-        - run: flutter pub get
-        - run: flutter build web --release
+          
+      - run: flutter pub get
+      - run: flutter build web --release
 
       - name: Upload artifact for Github Release and Deployment job
         uses: actions/upload-artifact@v2
