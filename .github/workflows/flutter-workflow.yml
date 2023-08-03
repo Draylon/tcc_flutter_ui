@@ -1,9 +1,9 @@
-name: Flutter CI
+name: Mobile App
 
 on:
   push:
     branches:
-      - master
+      - mobile
 
 jobs:
   build:
