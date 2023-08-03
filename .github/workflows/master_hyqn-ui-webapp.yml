@@ -6,7 +6,7 @@ name: Build and deploy Node.js app to Azure Web App - hyqn-ui-webapp
 on:
   push:
     branches:
-      - master
+      - webapp
   workflow_dispatch:
 
 jobs:
