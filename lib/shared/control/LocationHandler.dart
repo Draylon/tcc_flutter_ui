@@ -8,6 +8,10 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:location/location.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:latlong2/latlong.dart';
+
+import '../../api/call.dart';
+
 class LocationHandler{
 
   Map<String,dynamic> whois_data = {};
@@ -24,11 +28,28 @@ class LocationHandler{
 
   }
 
+  static Map whois_json={};
+  static Map geocode_json={};
+  //LocationData? _curr_location;
+  static String uiCityName="Local não definido";
+
+  static bool locationAvaliable=false;
+  static bool manually_set = false;
   static Location _locationService = Location();
   static StreamSubscription? _locSub;
   static LocationData? _locationData;
+  static ValueNotifier _locationDataNotifier=ValueNotifier(_locationData);
+
   static Location get locationService => _locationService;
+  static StreamSubscription? get locSub => _locSub;
   static LocationData? get locationData => _locationData;
+  static ValueNotifier get locationDataNotifier => _locationDataNotifier;
+
+
+  static void defineLocationManually(LocationData result){
+    _locationData = result;
+    _locationDataNotifier.value = _locationData;
+  }
 
   static Future<Stream<LocationData>?> requestGPSListener({bool prompt=false}) async{
 
@@ -70,6 +91,33 @@ class LocationHandler{
           interval: 15000,
         );
         return _locationService.getLocation().timeout(const Duration(seconds: 4));
+      }else{
+        throw Exception("Permission Denied");
+      }
+
+    } on Exception catch(e){
+      return Future.error(e);
+    }
+
+  }
+
+  static Future<void> updateGlobalGPS({bool prompt=false}) async{
+
+    try{
+      PermissionStatus? perm = await checkGPSPermission();
+      if (prompt && perm != PermissionStatus.deniedForever) {
+        perm = await _locationService.requestPermission();
+      }
+
+      if(perm==PermissionStatus.granted||perm==PermissionStatus.grantedLimited){
+        //===========
+        await _locationService.changeSettings(
+          accuracy: LocationAccuracy.balanced,
+          interval: 15000,
+        );
+        _locationData = await _locationService.getLocation().timeout(const Duration(seconds: 4));
+        _locationDataNotifier.value = _locationData;
+        return;
       }else{
         throw Exception("Permission Denied");
       }
@@ -134,6 +182,39 @@ class LocationHandler{
   }
 
 
+  /*static Map _geocode_json={};
+  static Map get geocode_json => _geocode_json;
+  static Future<void> isp_geocode_data() async {
+    await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+      if (apiResponse.statusCode == 200) {
+        String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
+
+        try{
+          _geocode_json = json.decode(apiResponseBody);
+        }on Exception catch(e){
+          print("internal error:");
+          print(e);
+          setState(() {
+            LocationHandler.locationAvaliable=false;
+          });
+        }
+        print("Geocoding completed");
+      }else{
+        print("request invalid: "+apiResponse.statusCode.toString());
+        setState(() {
+          LocationHandler.locationAvaliable=false;
+        });
+      }
+      //return true;
+    },onError: (e){
+      print("major error:");
+      print(e);
+      setState(() {
+        LocationHandler.locationAvaliable=false;
+      });
+    });
+  }
+*/
 
   static bool _isp_ongoing=false;
   static Map<String,dynamic> _response_isp_data={};

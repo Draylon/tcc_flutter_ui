@@ -20,6 +20,12 @@ void main() async {
   runApp(const MyApp());
 }
 
+/**
+ * Login with google + login screen
+ * https://www.youtube.com/watch?v=1U8_Mq1QdX4&ab_channel=MitchKoko
+ * https://www.youtube.com/watch?v=Dh-cTQJgM-Q&ab_channel=MitchKoko
+ */
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -32,7 +38,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         backgroundColor: const Color(0xfff8f4ea),
         bottomAppBarColor: const Color(0xff144272),
-        accentColor: const Color(0xff748395),
+        accentColor: const Color(0xff397ed2),
         primaryColor: Colors.white,
         brightness: Brightness.light,
         primaryColorDark: Colors.black,

@@ -41,6 +41,9 @@ class _CardPageState extends State<CardPage> {
       prefs.setBool('intro_screen',true)
     });
 
+    LocationHandler.locationDataNotifier.addListener(() {
+      fetchFirst?_fetch_card_data(refresh: true):null;
+    });
     _fetch_card_data();
     //AppDatabase().openDb().whenComplete(loaded);
   }
@@ -50,12 +53,9 @@ class _CardPageState extends State<CardPage> {
     super.dispose();
   }
 
-  Map whois_json={};
-  Map geocode_json={};
-  LocationData? _curr_location;
-  String uiCityName="Local não definido";
-  bool locationAvaliable=false;
-  bool manually_set = false;
+  
+  //bool locationAvaliable=false;
+  //bool LocationHandler.manually_set = false;
 
   _manual_location_data(context) async {
       LatLng? result = await Navigator.push(context, MaterialPageRoute(
@@ -63,27 +63,27 @@ class _CardPageState extends State<CardPage> {
         fullscreenDialog: true,)
       );
       result!=null?
-      _curr_location = LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude})
+      LocationHandler.defineLocationManually(LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude}))
           :Scaffold.of(context).showSnackBar(const SnackBar(content: Text("Cancelled"),duration: Duration(seconds: 3),));
 
-      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((apiResponse){
+      await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
         if (apiResponse.statusCode == 200) {
           String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
 
           try{
-            geocode_json = json.decode(apiResponseBody);
+            LocationHandler.geocode_json = json.decode(apiResponseBody);
           }on Exception catch(e){
             print("internal error:");
             print(e);
             setState(() {
-              locationAvaliable=false;
+              LocationHandler.locationAvaliable=false;
             });
           }
           print("Geocoding completed");
         }else{
           print("request invalid: "+apiResponse.statusCode.toString());
           setState(() {
-            locationAvaliable=false;
+            LocationHandler.locationAvaliable=false;
           });
         }
         //return true;
@@ -91,24 +91,25 @@ class _CardPageState extends State<CardPage> {
         print("major error:");
         print(e);
         setState(() {
-          locationAvaliable=false;
+          LocationHandler.locationAvaliable=false;
         });
       });
 
       setState(() {
-        uiCityName=geocode_json['county'];
-        manually_set = true;
-        locationAvaliable=true;
+        LocationHandler.uiCityName=LocationHandler.geocode_json['county'];
+        LocationHandler.manually_set = true;
+        LocationHandler.locationAvaliable=true;
       });
   }
 
   _fetch_location_data({bool precision=false}) async{
-    manually_set?{
-      locationAvaliable=false,
-      geocode_json.clear()
-    }:null;
-    manually_set = false;
-    String whoisParams;
+    if(LocationHandler.manually_set){
+      setState(() {
+        LocationHandler.locationAvaliable=false;
+        LocationHandler.geocode_json.clear();
+      });
+    }
+    LocationHandler.manually_set = false;
 
     // check permission
     print("check permission");
@@ -116,7 +117,7 @@ class _CardPageState extends State<CardPage> {
     if(!precision) {
       await LocationHandler.checkGPSPermission().then((value) {
         setState(() {
-          locationAvaliable = value == PermissionStatus.granted;
+          LocationHandler.locationAvaliable = value == PermissionStatus.granted;
         });
       }, onError: (e) {
         print("Error on GPS permission");
@@ -125,51 +126,55 @@ class _CardPageState extends State<CardPage> {
     }else {
       await LocationHandler.requestGPSPrecision().then((value) {
         setState(() {
-          locationAvaliable = value == PermissionStatus.granted;
+          LocationHandler.locationAvaliable = value == PermissionStatus.granted;
         });
       });
     }
 
     //retrieve coordinates
     //LocationData? curr_location;
-    if(locationAvaliable){
+    if(LocationHandler.locationAvaliable){
       print("retrieve coordinates");
-      await LocationHandler.requestCurrentGPS(prompt: false).then((value) {
-        _curr_location=value;
+      await LocationHandler.updateGlobalGPS(prompt: false).then((value) {
+        //_curr_location=value;
       },onError: (e){
-        locationAvaliable=false;
+        setState(() {
+          LocationHandler.locationAvaliable = false;
+        });
         print("Error on GPS Location retrieval");print(e);
       });
-      setState(() {
-        _curr_location==null?locationAvaliable=false:null;
-      });
+      /*setState(() {
+        _curr_location==null?LocationHandler.locationAvaliable=false:null;
+      });*/
 
     }
+    await _geocode_update();
+  }
 
-
+  _geocode_update() async {
+    String whoisParams;
     //retrieve geocoding
     //_last_location?.latitude!=curr_location?.latitude &&
     //_last_location?.longitude!=curr_location?.longitude
-    if(locationAvaliable && geocode_json.isEmpty){
+    if(LocationHandler.locationAvaliable && LocationHandler.geocode_json.isEmpty){
       print("retrieve geocoding");
-      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((apiResponse){
+      await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
         if (apiResponse.statusCode == 200) {
           String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
-
           try{
-            geocode_json = json.decode(apiResponseBody);
+            LocationHandler.geocode_json = json.decode(apiResponseBody);
           }on Exception catch(e){
             print("internal error:");
             print(e);
             setState(() {
-              locationAvaliable=false;
+              LocationHandler.locationAvaliable=false;
             });
           }
           print("Geocoding completed");
         }else{
           print("request invalid: "+apiResponse.statusCode.toString());
           setState(() {
-            locationAvaliable=false;
+            LocationHandler.locationAvaliable=false;
           });
         }
         //return true;
@@ -177,7 +182,7 @@ class _CardPageState extends State<CardPage> {
         print("major error:");
         print(e);
         setState(() {
-          locationAvaliable=false;
+          LocationHandler.locationAvaliable=false;
         });
       });
     }else{
@@ -185,15 +190,15 @@ class _CardPageState extends State<CardPage> {
     }
     //==============================
 
-    if(locationAvaliable){
+    if(LocationHandler.locationAvaliable){
       whoisParams='ip,connection,success,type';
     }else{
       whoisParams='ip,connection,success,type,country,city,latitude,longitude';
     }
 
-    if(whois_json.isEmpty) {
+    if(LocationHandler.whois_json.isEmpty) {
       await LocationHandler.cached_isp_data(whoisParams).then((whoisResponse) {
-        whois_json = whoisResponse;
+        LocationHandler.whois_json = whoisResponse;
         return true;
       }, onError: (e) {
         print("Error on whois fetch:");
@@ -205,43 +210,52 @@ class _CardPageState extends State<CardPage> {
       print("skipping whois phase");
     }
 
-    if(locationAvaliable) setState(() {uiCityName=geocode_json['county'];});
-    else setState(() {uiCityName=whois_json['city'];});
-
+    if(LocationHandler.locationAvaliable) setState(() {
+      LocationHandler.uiCityName=LocationHandler.geocode_json['county'];
+    });
+    else setState(() {
+      LocationHandler.uiCityName=LocationHandler.whois_json['city'];
+    });
   }
 
+  bool fetchFirst=false;
+  _fetch_card_data({bool refresh=false}) async{
+    if(refresh){
+      setState(() {
+        LocationHandler.geocode_json.clear();
+      });
+      await _geocode_update();
+    } else if(!LocationHandler.locationAvaliable) await _fetch_location_data();
 
-  _fetch_card_data() async{
-    if(!locationAvaliable)await _fetch_location_data();
     Map<String,dynamic> azureJson={};
-    if(whois_json.isEmpty && !locationAvaliable){
+    if(LocationHandler.whois_json.isEmpty && !LocationHandler.locationAvaliable){
       setState((){failureMessage="Problema no apontamento da região";menuLoaded=1;});
       return;
     }
     print("Obtendo cards");
     Map<String,dynamic>? apiRequestsQuery;
-    if(locationAvaliable){
+    if(LocationHandler.locationAvaliable){
       print("Precise locations avaliable");
       apiRequestsQuery={
-        'ip': whois_json['ip'],
-        'country': geocode_json['country'],
-        'city': geocode_json['county'],
-        'street_name': geocode_json['name'],
-        'region': geocode_json['region'],
-        'latitude': _curr_location?.latitude.toString(),
-        'longitude': _curr_location?.longitude.toString(),
-        'connection': whois_json['connection'].toString(),
+        'ip': LocationHandler.whois_json['ip'],
+        'country': LocationHandler.geocode_json['country'],
+        'city': LocationHandler.geocode_json['county'],
+        'street_name': LocationHandler.geocode_json['name'],
+        'region': LocationHandler.geocode_json['region'],
+        'latitude': LocationHandler.locationData?.latitude.toString(),
+        'longitude': LocationHandler.locationData?.longitude.toString(),
+        'connection': LocationHandler.whois_json['connection'].toString(),
       };
 
     }else{
       print("Location unavaliable, Sticking to whois");
       apiRequestsQuery={
-        'ip': whois_json['ip'],
-        'country': whois_json['country'],
-        'city': whois_json['city'],
-        'latitude': whois_json['latitude'].toString(),
-        'longitude': whois_json['longitude'].toString(),
-        'connection': whois_json['connection'].toString(),
+        'ip': LocationHandler.whois_json['ip'],
+        'country': LocationHandler.whois_json['country'],
+        'city': LocationHandler.whois_json['city'],
+        'latitude': LocationHandler.whois_json['latitude'].toString(),
+        'longitude': LocationHandler.whois_json['longitude'].toString(),
+        'connection': LocationHandler.whois_json['connection'].toString(),
       };
 
     }
@@ -265,11 +279,13 @@ class _CardPageState extends State<CardPage> {
       }else{
         setState((){failureMessage="API returned invalid code";menuLoaded=1;});
       }
+      fetchFirst=true;
       return true;
     },onError:(e) {
       print("Error on API fetch:");print(e);
       setState((){failureMessage="Serviço com problemas";menuLoaded=1;});
       //return Future.error("Api Error");
+      fetchFirst=true;
       return false;
     });
   }
@@ -308,40 +324,33 @@ class _CardPageState extends State<CardPage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   const Expanded(
-                    child: Text("Titulo?",style: TextStyle(
+                    child: Text("Aplicativo",style: TextStyle(
                       fontSize: 26,
                     ),),
                   ),
                   FittedBox(
                     alignment: Alignment.centerRight,
-                    child: MaterialButton(
+                    child: OutlinedButton(
+                      style: ButtonStyle(
+                        padding: MaterialStateProperty.resolveWith((states) => EdgeInsets.all(15)),
+                        foregroundColor: MaterialStateProperty.resolveWith((states) => Theme.of(context).primaryColorDark),
+                        //side: MaterialStateProperty.resolveWith((states) => BorderSide(width: 1,color: Theme.of(context).primaryColorDark)),
+                      ),
                       onPressed: ()=> _fetch_location_data(precision: true),
                       onLongPress:  () async {
-                        await _manual_location_data(ctx);
-                        _fetch_card_data();
-                    },
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                              bottom: BorderSide(
-                                  color: Colors.black45,
-                                  style: BorderStyle.solid,
-                                  width: 2
-                              )
+                          await _manual_location_data(ctx);
+                          _fetch_card_data();
+                      },
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10,0,10,0),
+                            child: LocationHandler.locationAvaliable?LocationHandler.manually_set?const Icon(Icons.location_pin):const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
                           ),
-                        ),
-                        child:Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(10,0,10,0),
-                              child: locationAvaliable?manually_set?const Icon(Icons.location_pin):const Icon(Icons.near_me):const Icon(Icons.wifi_tethering),
-                            ),
-                            Text(uiCityName,style: const TextStyle(
+                          Text(LocationHandler.uiCityName,style: const TextStyle(
                               fontSize: 20
-                            ),),
-                          ],
-                        ),
+                          ),),
+                        ],
                       ),
                     ),
                   ),
@@ -411,13 +420,12 @@ class _CardPageState extends State<CardPage> {
                   )
                 ],
               ):
-            MasonryGridView.count(
+            AlignedGridView.count(
                 padding: const EdgeInsets.all(20),
                 shrinkWrap: true,
                 crossAxisCount: 2,
                 mainAxisSpacing: 20,
                 crossAxisSpacing: 20,
-
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: avaliableCards.length,
                 itemBuilder: (ctx,i)=>avaliableCards.item(i)

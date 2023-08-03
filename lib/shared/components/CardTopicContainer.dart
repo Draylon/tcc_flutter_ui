@@ -2,7 +2,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blurhash/flutter_blurhash.dart';
-import 'package:json_dynamic_widget/json_dynamic_widget.dart';
 
 import 'package:location/location.dart';
 import 'package:ui/pages/ViewCardContent.dart';
@@ -15,14 +14,14 @@ import 'CardTopicFragment.dart';
 class CardTopicContainer{
   static final CardTopicContainer _instance = CardTopicContainer._internal();
 
-  ViewCardContent? _parent;
+
 
   factory CardTopicContainer(){
     return _instance;
   }
-
-  void setParent(ViewCardContent parent){
-    _parent = parent;
+  Function? _passthrough;
+  void setPassthrough(Function function){
+    _passthrough =function;
   }
 
   bool _locationAvaliable=false;
@@ -80,6 +79,7 @@ class CardTopicContainer{
     topic_data.forEach((value) {
       Map<String,dynamic> block = value ?? {"data":[[]],"passthrough":{}};
       _list.add(CardTopicFragment(
+        stateful_viewcardcontent_passthrough: _passthrough,
         title:title, detailed:detailed, description: description,
 
         dataset_interval:block["passthrough"]["dataset_interval"],

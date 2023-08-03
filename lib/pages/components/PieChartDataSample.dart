@@ -14,8 +14,34 @@ class PieChartSample2 extends StatefulWidget {
   State<StatefulWidget> createState() => PieChart2State();
 }
 
-class PieChart2State extends State<PieChartSample2> {
+class PieChart2State extends State<PieChartSample2> with TickerProviderStateMixin{
   int touchedIndex = -1;
+
+  AnimationController? _controller;
+  Animation<double>? _animation;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _controller = AnimationController(
+        duration: const Duration(milliseconds: 200),
+        vsync: this,
+        lowerBound: 0,
+        upperBound: ((widget.val - widget.min) * (100 - 100*widget.radius_gap_percentage)) / (widget.max - widget.min)//(90 - (widget.radius_gap_percentage*360)/2)/360
+    );
+    _animation = CurvedAnimation(parent: _controller!, curve: Curves.easeInOut);
+    setState(() {
+      _controller?.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +49,7 @@ class PieChart2State extends State<PieChartSample2> {
       alignment: Alignment.center,
       children: [
         RotationTransition(
-          turns: AlwaysStoppedAnimation(
-              (90 - (widget.radius_gap_percentage*360)/2)/360
-          ),
+          turns: AlwaysStoppedAnimation((90 - (widget.radius_gap_percentage*360)/2)/360),
           child: SizedBox.square(
               dimension: 170,
               child:AspectRatio(
@@ -38,26 +62,62 @@ class PieChart2State extends State<PieChartSample2> {
                         child: PieChart(
                           PieChartData(
                             /*pieTouchData: PieTouchData(
-                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                      setState(() {
-                        if (!event.isInterestedForInteractions ||
-                            pieTouchResponse == null ||
-                            pieTouchResponse.touchedSection == null) {
-                          touchedIndex = -1;
-                          return;
-                        }
-                        touchedIndex = pieTouchResponse
-                            .touchedSection!.touchedSectionIndex;
-                      });
-                    },
-                  ),*/
+                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                setState(() {
+                                  if (!event.isInterestedForInteractions ||
+                                      pieTouchResponse == null ||
+                                      pieTouchResponse.touchedSection == null) {
+                                    touchedIndex = -1;
+                                    return;
+                                  }
+                                  touchedIndex = pieTouchResponse
+                                      .touchedSection!.touchedSectionIndex;
+                                });
+                              },
+                            ),*/
                             borderData: FlBorderData(
                               show: false,
                             ),
                             sectionsSpace: 0,
                             startDegreeOffset: 0,
                             centerSpaceRadius: 70,
-                            sections: showingSections(),
+                            sections: List.generate(3, (i) {
+                              final isTouched = i == touchedIndex;
+                              final fontSize = isTouched ? 25.0 : 16.0;
+                              final radius = isTouched ? 60.0 : 5.0;
+                              const shadows = [Shadow(color: Colors.black, blurRadius: 2)];
+                              switch (i) {
+                                case 0:
+                                  return PieChartSectionData(
+                                    color: Colors.transparent,
+                                    value: 100*widget.radius_gap_percentage,
+                                    showTitle: false,
+                                    radius: radius,
+                                  );
+                                case 1:
+                                  return PieChartSectionData(
+                                    color: Colors.greenAccent,
+                                    //value: _animation?.value,
+                                    value: ((widget.val - widget.min) * (100 - 100*widget.radius_gap_percentage)) / (widget.max - widget.min),
+                                    showTitle: false,
+                                    radius: radius,
+                                  );
+                                case 2:
+                                  return PieChartSectionData(
+                                    color: Colors.blueGrey,
+                                    value: (100*(1-widget.radius_gap_percentage))-(((widget.val - widget.min) * (100 - 100*widget.radius_gap_percentage)) / (widget.max - widget.min)),
+                                    showTitle: false,
+                                    radius: radius,
+                                    titleStyle: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white60,
+                                      shadows: shadows,
+                                    ),
+                                  );
+                                default: throw Error();
+                              }
+                            }),
                           ),
                         ),
                       ),
@@ -75,44 +135,5 @@ class PieChart2State extends State<PieChartSample2> {
         )
       ],
     );
-  }
-  List<PieChartSectionData> showingSections() {
-    return List.generate(3, (i) {
-      final isTouched = i == touchedIndex;
-      final fontSize = isTouched ? 25.0 : 16.0;
-      final radius = isTouched ? 60.0 : 5.0;
-      const shadows = [Shadow(color: Colors.black, blurRadius: 2)];
-      switch (i) {
-        case 0:
-          return PieChartSectionData(
-            color: Colors.transparent,
-            value: 100*widget.radius_gap_percentage,
-            showTitle: false,
-            radius: radius,
-          );
-        case 1:
-          return PieChartSectionData(
-            color: Colors.greenAccent,
-            value:  ((widget.val - widget.min) * (100 - 100*widget.radius_gap_percentage)) / (widget.max - widget.min),
-            showTitle: false,
-            radius: radius,
-          );
-        case 2:
-          return PieChartSectionData(
-            color: Colors.blueGrey,
-            value: (100*(1-widget.radius_gap_percentage))-(((widget.val - widget.min) * (100 - 100*widget.radius_gap_percentage)) / (widget.max - widget.min)),
-            showTitle: false,
-            radius: radius,
-            titleStyle: TextStyle(
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
-              color: Colors.white60,
-              shadows: shadows,
-            ),
-          );
-        default:
-          throw Error();
-      }
-    });
   }
 }

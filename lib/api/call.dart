@@ -14,7 +14,7 @@ class ApiRequests{
         }else{
             print("Requesting on debug");
             return DefaultCacheManager().getSingleFile(
-                "192.168.0.3:8081"+route,headers: queryParameters
+                "192.168.0.4:8081"+route,headers: queryParameters
             );
         }
     }
@@ -27,7 +27,7 @@ class ApiRequests{
         }else{
             print("Requesting on debug");
             return http.get(Uri.http(
-                "192.168.0.3:8081",route,queryParameters
+                "192.168.0.4:8081",route,queryParameters
             ));
         }
     }
@@ -44,7 +44,7 @@ class ApiRequests{
             print("Requesting on debug");
 
             http.get(Uri.http(
-                "192.168.0.3:8081",route,queryParameters
+                "192.168.0.4:8081",route,queryParameters
             )).then((value) {
                 return value;
             });

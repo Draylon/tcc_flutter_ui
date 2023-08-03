@@ -43,6 +43,11 @@ class ExibitCardLoader{
     return _instance;
   }
 
+  _loadimg(String? dir){
+    if(dir==null) return null;
+    return Image.network(dir,width: 80,height: 80,color: Colors.white,);
+  }
+
   ExibitCardLoader._internal();
 
   static final List<_ExibitCard> _list=[];
@@ -54,6 +59,7 @@ class ExibitCardLoader{
         list.forEach((value)=> _list.add(_ExibitCard(
             parentContext: context,
             title: value["name"],
+            icon: _loadimg(value["icon"]),
             db_id: value["_id"],
             description: value["description"],
             blurShadowHash: bhp.pick(),
@@ -217,13 +223,13 @@ class _ExibitCard extends StatefulWidget{
   String? description;
 
   String blurShadowHash;
-  Image? img;
-  Icon? icon;
+  Image? icon;
+  //Icon? icon;
   bool isLast=false;
   Function? action;
 
   //ExibitCard.fromJson(Map json):title = json['title'],description = json['description'],blurShadowHash=json['blurShadowHash'],img=json['img'];
-  _ExibitCard({Key? key,required this.parentContext,this.db_id,this.title,this.description,required this.blurShadowHash,this.action,this.img}):super(key:key);
+  _ExibitCard({Key? key,required this.parentContext,this.db_id,this.title,this.description,required this.blurShadowHash,this.action,this.icon}):super(key:key);
 
   @override
   State<StatefulWidget> createState() => _ExibitCardState();
@@ -264,7 +270,7 @@ class _ExibitCardState extends State<_ExibitCard>{
               child:Ink(
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: widget.img==null?BlurHashImage(widget.blurShadowHash):widget.img!.image,
+                  image: BlurHashImage(widget.blurShadowHash),
                   fit: BoxFit.cover,
                   alignment: Alignment.center,
                 ),
@@ -272,11 +278,11 @@ class _ExibitCardState extends State<_ExibitCard>{
               ),
               child: Container(
                   padding: const EdgeInsets.all(10),
-                  child: const Icon(
-                    Icons.check,
-                    size: 80,
-                    color: Colors.white,
-                  ),
+                  child: widget.icon ?? const Icon(
+                          Icons.check,
+                          size: 80,
+                          color: Colors.white,
+                        ),
               ),
             ),),
             Padding(

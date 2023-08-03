@@ -70,6 +70,9 @@ class _ViewCardContentState extends State<ViewCardContent>{
   void initState() {
     super.initState();
     _fetch_card_data();
+    LocationHandler.locationDataNotifier.addListener(() {
+      fetchFirst?_fetch_card_data():null;
+    });
     //AppDatabase().openDb().whenComplete(loaded);
   }
 
@@ -78,43 +81,47 @@ class _ViewCardContentState extends State<ViewCardContent>{
     super.dispose();
   }
 
-  late LocationData? _curr_location;
+  //late LocationData? _curr_location;
   _fetch_latitude_longitude(/*{bool precision=false}*/) async {
-    bool _locationAvaliable=false;
+    //bool _locationAvaliable=false;
     // check permission
     print("check permission");
 
-    await LocationHandler.checkGPSPermission().then((value) {
-      _locationAvaliable = value == PermissionStatus.granted;
-    }, onError: (e) {
-      print("Error on GPS permission");
-      print(e);
-    });
+    if(!LocationHandler.locationAvaliable) {
+      await LocationHandler.checkGPSPermission().then((value) {
+        LocationHandler.locationAvaliable = value == PermissionStatus.granted;
+      }, onError: (e) {
+        print("Error on GPS permission");
+        print(e);
+      });
+    }
 
     //retrieve coordinates
     //LocationData? curr_location;
-    if(_locationAvaliable){
+    if(LocationHandler.locationAvaliable){
       print("retrieve coordinates");
-      await LocationHandler.requestCurrentGPS(prompt: false).then((value) {
-        setState(() {
+      await LocationHandler.updateGlobalGPS(prompt: false).then((value) {
+        /*setState(() {
           _curr_location=value;
-        });
+        });*/
       },onError: (e){
-        _locationAvaliable=false;
+        LocationHandler.locationAvaliable=false;
         print("Error on GPS Location retrieval");print(e);
       });
 
-      setState(() {
+      /*setState(() {
         _curr_location==null?_locationAvaliable=false:null;
-      });
+      });*/
 
     }else{
+      print("location unavailable on card content, sticking to whois data");
       Map<String,dynamic> whois_json;
       String whois_params ='latitude,longitude';
 
       await LocationHandler.cached_isp_data(whois_params).then((whois_response) {
         whois_json = whois_response;
-        _curr_location = LocationData.fromMap(whois_json);
+        //_curr_location = LocationData.fromMap(whois_json);
+        LocationHandler.defineLocationManually(LocationData.fromMap(whois_json));
         return true;
       }, onError: (e) {
         print("Error on whois fetch:");
@@ -125,16 +132,18 @@ class _ViewCardContentState extends State<ViewCardContent>{
     }
   }
 
+  bool fetchFirst=false;
   _fetch_card_data() async{
     List<dynamic> azure_json=[];
 
-    await _fetch_latitude_longitude();
+    if(!LocationHandler.locationAvaliable) await _fetch_latitude_longitude();
+
     // substituir essa chamada de queryFields estático por um request na
     // api de /api/ui_data/$tags pra pegar uma lista de métodos novos disponíveis
     // para o tópico de tags
 
     await ApiRequests.call("/api/v1/data/feed/${widget.db_id}",{
-      "location":"{\"latitude\":${_curr_location?.latitude},\"longitude\":${_curr_location?.longitude}}",
+      "location":"{\"latitude\":${LocationHandler.locationData?.latitude},\"longitude\":${LocationHandler.locationData?.longitude}}",
       /*
       locations_by_tag_nearby             Local que possui a tag. Mostrar 3 primeiros, 4° botão "carregar o resto" se tiver mais. "carregar cidades proximas" se acabar.
       location_metrics_by_tag_nearby      "Praias estão de acordo com a especificação da maioria dos dados obtidos". Essa parte é mais 'informação' do q dados.
@@ -147,11 +156,11 @@ class _ViewCardContentState extends State<ViewCardContent>{
         try{
           print(api_response);
           azure_json = json.decode(api_response.body);
-          cardTopics.setParent(widget);
+          cardTopics.setPassthrough(_state_callback_passthrough);
           cardTopics.initializer(
-              this.widget.title??"no title",
-              this.widget.detailed??"no details",
-              this.widget.description??"no description",
+              widget.title??"no title",
+              widget.detailed??"no details",
+              widget.description??"no description",
               azure_json,context
           );
           setState(() {
@@ -166,12 +175,20 @@ class _ViewCardContentState extends State<ViewCardContent>{
         print("did not complete successfully");
         setState((){failureMessage="API returned invalid code";menuLoaded=1;});
       }
+      fetchFirst=true;
       return true;
     },onError:(e) {
       print("Error on API fetch:");print(e);
       setState((){failureMessage="Serviço com problemas";menuLoaded=1;});
       //return Future.error("Api Error");
+      fetchFirst=true;
       return false;
+    });
+  }
+
+  void _state_callback_passthrough(Function lmao){
+    setState(() {
+      lmao.call();
     });
   }
 
@@ -181,7 +198,6 @@ class _ViewCardContentState extends State<ViewCardContent>{
   //List<CardTopicFragment> card_topics_list = [];
 
   _buildCardContent(){
-
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (ctx,isScrolled)=>[
@@ -193,7 +209,7 @@ class _ViewCardContentState extends State<ViewCardContent>{
                 children: [
                   Text(widget.title ?? "No Title",style: const TextStyle(
                     letterSpacing: 3,
-                    color: Colors.white,
+                    //color: Colors.white,
                     fontSize: 30,
                     fontWeight: FontWeight.w300,
                   )),
@@ -215,7 +231,7 @@ class _ViewCardContentState extends State<ViewCardContent>{
             :RefreshIndicator(
           displacement: 80,
           onRefresh:(){return _fetch_card_data();},
-          child:ListView.builder(
+          child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(15,0,15,0),
             itemCount: cardTopics.length(),
             itemBuilder: (BuildContext context, int index) => cardTopics.item(index),
