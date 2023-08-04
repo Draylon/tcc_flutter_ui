@@ -124,9 +124,9 @@ class _CardPageState extends State<CardPage> {
     //==============================
 
     if(locationAvaliable){
-      whois_params='ip,connection,success,type';
+      whois_params='ip,success,type';
     }else{
-      whois_params='ip,connection,success,type,country,city,latitude,longitude';
+      whois_params='ip,success,type,country,city,latitude,longitude';
     }
 
     if(whois_json.isEmpty) {
@@ -168,7 +168,6 @@ class _CardPageState extends State<CardPage> {
         'region': geocode_json['region'],
         'latitude': _curr_location?.latitude.toString(),
         'longitude': _curr_location?.longitude.toString(),
-        'connection': whois_json['connection'].toString(),
       };
 
     }else{
