@@ -142,7 +142,7 @@ class _ViewCardContentState extends State<ViewCardContent>{
     // api de /api/ui_data/$tags pra pegar uma lista de métodos novos disponíveis
     // para o tópico de tags
 
-    await ApiRequests.call("/api/v1/data/feed/${widget.db_id}",{
+    await ApiRequests.get("/api/v1/data/feed/${widget.db_id}",{
       "location":"{\"latitude\":${LocationHandler.locationData?.latitude},\"longitude\":${LocationHandler.locationData?.longitude}}",
       /*
       locations_by_tag_nearby             Local que possui a tag. Mostrar 3 primeiros, 4° botão "carregar o resto" se tiver mais. "carregar cidades proximas" se acabar.

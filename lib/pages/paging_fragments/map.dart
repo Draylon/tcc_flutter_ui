@@ -140,7 +140,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   _fetch_markers() async{
     try{
       print("Fetching sensor position");
-      final response = await ApiRequests.call("/api/v1/sensor");
+      final response = await ApiRequests.get("/api/v1/sensor");
       if (response.statusCode == 200) {
         return _parse_markers(response.body);
       } else {

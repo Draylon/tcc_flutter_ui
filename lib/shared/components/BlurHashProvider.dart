@@ -19,7 +19,7 @@ class BlurHashProvider{
   }
 
 /*_old_segment(){
-    ApiRequests.call("/api/v1/util/blurhashes",{
+    ApiRequests.get("/api/v1/util/blurhashes",{
       "tags_en":tags_en.toString(),
       "sensor_data":sensor_data.length.toString(),
       "within_city":within_city.length.toString(),
