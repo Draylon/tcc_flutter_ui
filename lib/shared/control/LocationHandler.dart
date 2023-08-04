@@ -185,7 +185,7 @@ class LocationHandler{
   /*static Map _geocode_json={};
   static Map get geocode_json => _geocode_json;
   static Future<void> isp_geocode_data() async {
-    await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+    await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
       if (apiResponse.statusCode == 200) {
         String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
 
@@ -371,7 +371,7 @@ _fetch_card_data() async {
         //Pegar os dados do Location da pessoa ainda e por aq tbm
         //ver se dá pra fazer isso aq virar GET FormData
 
-        await ApiRequests.call("/api/v1/ui_data/main_menu",{
+        await ApiRequests.get("/api/v1/ui_data/main_menu",{
           'ip': whois_json['ip'],
           'country': whois_json['country'],
           'city': whois_json['city'],

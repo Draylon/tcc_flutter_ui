@@ -70,7 +70,7 @@ class _SearchPageState extends State<SearchPage>{
     };
 
     print(_textEditingController.value.text);
-    await ApiRequests.call("/api/v1/loc/searchByName",apiRequestsQuery).then((apiResponse) {
+    await ApiRequests.get("/api/v1/loc/searchByName",apiRequestsQuery).then((apiResponse) {
       print("Request completed");
       if (apiResponse.statusCode == 200) {
         try{
@@ -167,7 +167,7 @@ class _SearchPageState extends State<SearchPage>{
 
                   LocationHandler.defineLocationManually(LocationData.fromMap({"latitude":maplng[1],"longitude":maplng[0]}));
 
-                  await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+                  await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
                     if (apiResponse.statusCode == 200) {
                       String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
 

@@ -66,7 +66,7 @@ class _CardPageState extends State<CardPage> {
       LocationHandler.defineLocationManually(LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude}))
           :Scaffold.of(context).showSnackBar(const SnackBar(content: Text("Cancelled"),duration: Duration(seconds: 3),));
 
-      await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+      await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
         if (apiResponse.statusCode == 200) {
           String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
 
@@ -158,7 +158,7 @@ class _CardPageState extends State<CardPage> {
     //_last_location?.longitude!=curr_location?.longitude
     if(LocationHandler.locationAvaliable && LocationHandler.geocode_json.isEmpty){
       print("retrieve geocoding");
-      await ApiRequests.call('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+      await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
         if (apiResponse.statusCode == 200) {
           String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
           try{
@@ -258,7 +258,7 @@ class _CardPageState extends State<CardPage> {
 
     }
 
-    await ApiRequests.call("/api/v2/ui_data/main_menu",apiRequestsQuery).then((apiResponse) {
+    await ApiRequests.get("/api/v2/ui_data/main_menu",apiRequestsQuery).then((apiResponse) {
       print("Request completed");
       if (apiResponse.statusCode == 200) {
         try{

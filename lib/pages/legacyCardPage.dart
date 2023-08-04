@@ -90,7 +90,7 @@ class _CardPageState extends State<CardPage> {
     //_last_location?.longitude!=curr_location?.longitude
     if(locationAvaliable && geocode_json.isEmpty){
       print("retrieve geocoding");
-      await ApiRequests.call('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((api_response){
+      await ApiRequests.get('/api/v1/loc/${_curr_location?.latitude}/${_curr_location?.longitude}').then((api_response){
         if (api_response.statusCode == 200) {
           String api_response_body = api_response.body.replaceAll('null',"\"null\"");
 
@@ -183,7 +183,7 @@ class _CardPageState extends State<CardPage> {
 
     }
 
-    await ApiRequests.call("/api/v1/ui_data/main_menu",api_requests_query).then((api_response) {
+    await ApiRequests.get("/api/v1/ui_data/main_menu",api_requests_query).then((api_response) {
       print("Request completed");
       if (api_response.statusCode == 200) {
         try{
