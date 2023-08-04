@@ -23,7 +23,7 @@ class ApiRequests{
         if(Foundation.kReleaseMode){
             return http.get(Uri.https(
                 "tcc-api-mon.azurewebsites.net",route,queryParameters
-            ),headers: {'Access-Control-Allow-Origin': '*'});
+            ));
         }else{
             print("Requesting on debug");
             return http.get(Uri.http(
@@ -37,7 +37,7 @@ class ApiRequests{
         if(Foundation.kReleaseMode){
             http.get(Uri.https(
                 "tcc-api-mon.azurewebsites.net",route,queryParameters
-            ),headers: {'Access-Control-Allow-Origin': '*'}).then((value) {
+            )).then((value) {
                 return value;
             });
         }else{

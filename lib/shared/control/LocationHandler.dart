@@ -227,7 +227,6 @@ class LocationHandler{
       if(_response_isp_data.isEmpty) {
         final Map<String,String> _qParams = <String,String>{
           'fields':params,
-          'Access-Control-Allow-Origin': '*'
         };
 
         await DefaultCacheManager().getSingleFile(Uri.https("ipwho.is", "").toString(),headers: _qParams).then((whoisResponse) {
@@ -266,7 +265,6 @@ class LocationHandler{
       if(_response_isp_data.isEmpty) {
         final Map<String,String> _qParams = <String,String>{
           'fields':params,
-          'Access-Control-Allow-Origin': '*'
         };
         await http.get(
             Uri.https("ipwho.is","",_qParams)
