@@ -11,12 +11,27 @@ class ApiRequests{
     static Future<File> cached_get(String route, [Map<String,String>?queryParameters,]){
         if(Foundation.kReleaseMode){
             return DefaultCacheManager().getSingleFile(
-                "tcc-api-mon.azurewebsites.net$route",headers: queryParameters
+                "tcc-api-mon.azurewebsites.net$route?$queryParameters",
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*',
+                    "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+                    "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
+                }
             );
         }else{
             print("Requesting on debug");
             return DefaultCacheManager().getSingleFile(
-                "192.168.0.4:8081$route",headers: queryParameters
+                "192.168.0.4:8081$route?$queryParameters",headers:{
+                    "Access-Control-Allow-Origin": "*",
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*',
+                    "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+                    "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
+                }
             );
         }
     }
@@ -25,12 +40,26 @@ class ApiRequests{
         if(Foundation.kReleaseMode){
             return http.get(Uri.https(
                 "tcc-api-mon.azurewebsites.net",route,queryParameters
-            ));
+            ),headers: {
+                "Access-Control-Allow-Origin": "*",
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+                "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
+            });
         }else{
             print("Requesting on debug");
             return http.get(Uri.http(
                 "192.168.0.4:8081",route,queryParameters
-            ));
+            ),headers: {
+                "Access-Control-Allow-Origin": "*",
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+                "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
+            });
         }
     }
 
