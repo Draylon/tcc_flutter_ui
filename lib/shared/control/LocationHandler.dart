@@ -236,10 +236,12 @@ class LocationHandler{
 
         await DefaultCacheManager().getSingleFile(Uri.https("ipwho.is","",_qParams).toString(),
             headers: {
-              "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+              "Access-Control-Allow-Origin": "*",
+              'Content-Type': 'application/json',
+              'Accept': '*/*',
               "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
               "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
-              "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+              "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
             }
           ).then((whoisResponse) {
           if (whoisResponse != null && whoisResponse.existsSync()) {
@@ -280,11 +282,13 @@ class LocationHandler{
         };
         await http.get(
             Uri.https("ipwho.is","",_qParams), headers: {
-            "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-            "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
-            "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
-          }
+                "Access-Control-Allow-Origin": "*",
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+                "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
+            }
         ).then((whoisResponse) {
           if(whoisResponse.statusCode==200){
             //ip,success,type,country,city,latitude,longitude
