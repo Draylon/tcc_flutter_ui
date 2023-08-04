@@ -11,12 +11,12 @@ class ApiRequests{
     static Future<File> cached_get(String route, [Map<String,String>?queryParameters,]){
         if(Foundation.kReleaseMode){
             return DefaultCacheManager().getSingleFile(
-                "tcc-api-mon.azurewebsites.net"+route,headers: queryParameters
+                "tcc-api-mon.azurewebsites.net$route",headers: queryParameters
             );
         }else{
             print("Requesting on debug");
             return DefaultCacheManager().getSingleFile(
-                "192.168.0.4:8081"+route,headers: queryParameters
+                "192.168.0.4:8081$route",headers: queryParameters
             );
         }
     }
