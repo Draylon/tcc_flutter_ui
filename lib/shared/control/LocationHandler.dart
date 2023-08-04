@@ -240,7 +240,7 @@ class LocationHandler{
               'Content-Type': 'application/json',
               'Accept': '*/*',
               "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
-              "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+              "Access-Control-Allow-Headers": "*",
               "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
             }
           ).then((whoisResponse) {
@@ -286,7 +286,7 @@ class LocationHandler{
                 'Content-Type': 'application/json',
                 'Accept': '*/*',
                 "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
-                "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+                "Access-Control-Allow-Headers": "*",
                 "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
             }
         ).then((whoisResponse) {
