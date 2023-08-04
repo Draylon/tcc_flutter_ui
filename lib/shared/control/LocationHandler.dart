@@ -229,7 +229,14 @@ class LocationHandler{
           'fields':params,
         };
 
-        await DefaultCacheManager().getSingleFile(Uri.https("ipwho.is", "").toString(),headers: _qParams).then((whoisResponse) {
+        await DefaultCacheManager().getSingleFile(Uri.https("ipwho.is","",_qParams).toString(),
+            headers: {
+              "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+              "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+              "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+              "Access-Control-Allow-Methods": "POST, OPTIONS"
+            }
+          ).then((whoisResponse) {
           if (whoisResponse != null && whoisResponse.existsSync()) {
             var res = whoisResponse.readAsStringSync();
             _response_isp_data= json.decode(res);
@@ -267,7 +274,12 @@ class LocationHandler{
           'fields':params,
         };
         await http.get(
-            Uri.https("ipwho.is","",_qParams)
+            Uri.https("ipwho.is","",_qParams), headers: {
+            "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+            "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+            "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+            "Access-Control-Allow-Methods": "POST, OPTIONS"
+          }
         ).then((whoisResponse) {
           if(whoisResponse.statusCode==200){
             //ip,success,type,country,city,latitude,longitude
@@ -305,7 +317,7 @@ _fetch_card_data() async {
         });
         if(whois_json.isEmpty) {
           final Map<String,String> _qParams = <String,String>{
-            'fields':'ip,connection,success,type,country,city,latitude,longitude'
+            'fields':'ip,success,type,country,city,latitude,longitude'
           };
           await http.get(
             Uri.https("ipwho.is","",_qParams)
