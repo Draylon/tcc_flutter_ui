@@ -41,7 +41,7 @@ class ApiRequests{
 
     static Future<Object> getCors(String route, [Map<String,dynamic>?queryParameters,]){
         if(Foundation.kIsWeb){
-            dynamic var1 = HttpRequest.requestCrossOrigin(route);
+            dynamic var1 = HttpRequest.requestCrossOrigin("tcc-api-mon.azurewebsites.net/$route");
             print(var1);
             return var1;
         }else{
