@@ -225,9 +225,9 @@ class LocationHandler{
     _isp_ongoing=true;
     try{
       //perform initial CORS check
-      /*ApiRequests.getCors("/cringe",{}).then((value) => {
+      ApiRequests.getCors("cringe",{}).then((value) => {
         print(value)
-      });*/
+      });
 
       if(_response_isp_data.isEmpty) {
         final Map<String,String> _qParams = <String,String>{
