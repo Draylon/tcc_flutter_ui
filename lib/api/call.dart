@@ -1,10 +1,13 @@
 
 import 'dart:convert';
+import 'dart:html';
 
 import 'package:file/src/interface/file.dart';
 import 'package:flutter/foundation.dart' as Foundation;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiRequests{
 
@@ -35,6 +38,17 @@ class ApiRequests{
             );
         }
     }
+
+    static Future<Object> getCors(String route, [Map<String,dynamic>?queryParameters,]){
+        if(Foundation.kIsWeb){
+            dynamic var1 = HttpRequest.requestCrossOrigin(route);
+            print(var1);
+            return var1;
+        }else{
+            return ApiRequests.get(route,queryParameters);
+        }
+    }
+
 
     static Future<http.Response> get(String route, [Map<String,dynamic>?queryParameters,]){
         if(Foundation.kReleaseMode){
