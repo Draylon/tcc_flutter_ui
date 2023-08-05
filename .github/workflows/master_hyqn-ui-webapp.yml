@@ -34,19 +34,17 @@ jobs:
       - run: flutter pub get
       - run: flutter build web --release --web-renderer html
 
-      - name: Create Github Release
-        uses: ncipollo/release-action@v1
-        with:
-          #artifacts: "."
-          tag: v1.1.${{ github.run_number }}
-          #upload artifact after release
-
-
       - name: Upload artifact for Github Release and Deployment job
         uses: actions/upload-artifact@v2
         with:
           name: node-app
-          path: .
+          path: build/web/
+
+      - name: Create Github Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "."
+          tag: v1.1.${{ github.run_number }}
 
     
   deploy:
@@ -61,16 +59,14 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: node-app
-    
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-static-webapp
         uses: Azure/static-web-apps-deploy@v1
         with:
+          action: "upload"
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ZEALOUS_PEBBLE_0256C6710 }}
-          action: 'upload'
-          ###### Repository/Build Configurations - These values can be configured to match you app requirements. ######
-          app_location: 'build/web' # App source code path
-          api_location: 'api' # Api source code path - optional
-          app_artifact_location: 'build/web' # Built app content directory - optional
-          # app_build_command: 'flutter build web --release'
-          ###### End of Repository/Build Configurations ######
+          app_location: "/" # App source code path
+          api_location: "/" # Api source code path - optional
+          output_location: "/" # Built app content directory - optional

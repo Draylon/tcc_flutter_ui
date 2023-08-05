@@ -225,7 +225,7 @@ class LocationHandler{
     _isp_ongoing=true;
     try{
       //perform initial CORS check
-      ApiRequests.get("/cringe",{}).then((value) => {
+      ApiRequests.getCors("/cringe",{}).then((value) => {
         print(value)
       });
 
