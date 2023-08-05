@@ -39,13 +39,14 @@ jobs:
         with:
           #artifacts: "."
           tag: v1.1.${{ github.run_number }}
+          #upload artifact after release
 
-      #upload artifact after release
+
       - name: Upload artifact for Github Release and Deployment job
-          uses: actions/upload-artifact@v2
-          with:
-            name: node-app
-            path: .
+        uses: actions/upload-artifact@v2
+        with:
+          name: node-app
+          path: .
 
     
   deploy:
