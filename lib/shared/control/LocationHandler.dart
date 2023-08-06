@@ -225,7 +225,7 @@ class LocationHandler{
     _isp_ongoing=true;
     try{
       //perform initial CORS check
-      ApiRequests.get("/cringe",{}).then((value) => {
+      ApiRequests.get("api/cringe",{}).then((value) => {
         print(value)
       });
 
@@ -233,17 +233,7 @@ class LocationHandler{
         final Map<String,String> _qParams = <String,String>{
           'fields':params,
         };
-
-        await DefaultCacheManager().getSingleFile(Uri.https("ipwho.is","",_qParams).toString(),
-            headers: {
-              "Access-Control-Allow-Origin": "*",
-              'Content-Type': 'application/json',
-              'Accept': '*/*',
-              "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
-              "Access-Control-Allow-Headers": "*",
-              "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
-            }
-          ).then((whoisResponse) {
+        ApiRequests.cached_get("/api/v1/util/geocoding",_qParams).then((whoisResponse) {
           if (whoisResponse != null && whoisResponse.existsSync()) {
             var res = whoisResponse.readAsStringSync();
             _response_isp_data= json.decode(res);
@@ -280,16 +270,7 @@ class LocationHandler{
         final Map<String,String> _qParams = <String,String>{
           'fields':params,
         };
-        await http.get(
-            Uri.https("ipwho.is","",_qParams), headers: {
-                "Access-Control-Allow-Origin": "*",
-                'Content-Type': 'application/json',
-                'Accept': '*/*',
-                "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
-                "Access-Control-Allow-Headers": "*",
-                "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
-            }
-        ).then((whoisResponse) {
+        await ApiRequests.get("/api/v1/util/geocoding",_qParams).then((whoisResponse) {
           if(whoisResponse.statusCode==200){
             //ip,success,type,country,city,latitude,longitude
             _response_isp_data= json.decode(whoisResponse.body);
