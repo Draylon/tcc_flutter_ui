@@ -12,9 +12,17 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class ApiRequests{
 
     static Future<File> cached_get(String route, [Map<String,String>?queryParameters,]){
+        String formattedQuery = "";
+        if(queryParameters!=null){
+            if(queryParameters.isNotEmpty) formattedQuery="";
+            queryParameters.forEach((key, value)=>{
+                formattedQuery+= (key + "=" + value + "&")
+            });
+        }
+
         if(Foundation.kReleaseMode){
             return DefaultCacheManager().getSingleFile(
-                "https://tcc-api-mon.azurewebsites.net$route?$queryParameters",
+                "https://tcc-api-mon.azurewebsites.net$route/$formattedQuery",
                 headers: {
                     "Access-Control-Allow-Origin": "*",
                     'Content-Type': 'application/json',
@@ -27,7 +35,7 @@ class ApiRequests{
         }else{
             print("Requesting on debug");
             return DefaultCacheManager().getSingleFile(
-                "192.168.0.4:8081$route?$queryParameters",headers:{
+                "192.168.0.4:8081$route/$formattedQuery",headers:{
                     "Access-Control-Allow-Origin": "*",
                     'Content-Type': 'application/json',
                     'Accept': '*/*',
