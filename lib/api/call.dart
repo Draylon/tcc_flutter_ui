@@ -14,7 +14,7 @@ class ApiRequests{
     static Future<File> cached_get(String route, [Map<String,String>?queryParameters,]){
         if(Foundation.kReleaseMode){
             return DefaultCacheManager().getSingleFile(
-                "tcc-api-mon.azurewebsites.net$route?$queryParameters",
+                "https://tcc-api-mon.azurewebsites.net$route?$queryParameters",
                 headers: {
                     "Access-Control-Allow-Origin": "*",
                     'Content-Type': 'application/json',
