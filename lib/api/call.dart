@@ -14,7 +14,7 @@ class ApiRequests{
     static Future<File> cached_get(String route, [Map<String,String>?queryParameters,]){
         String formattedQuery = "";
         if(queryParameters!=null){
-            if(queryParameters.isNotEmpty) formattedQuery="";
+            if(queryParameters.isNotEmpty) formattedQuery="?";
             queryParameters.forEach((key, value)=>{
                 formattedQuery+= (key + "=" + value + "&")
             });
@@ -48,12 +48,19 @@ class ApiRequests{
     }
 
     static Future<Object> getCors(String route, [Map<String,dynamic>?queryParameters,]){
+        String formattedQuery = "";
+        if(queryParameters!=null){
+            if(queryParameters.isNotEmpty) formattedQuery="?";
+            queryParameters.forEach((key, value)=>{
+                formattedQuery+= (key + "=" + value + "&")
+            });
+        }
         if(Foundation.kIsWeb){
-            dynamic var1 = HttpRequest.requestCrossOrigin("tcc-api-mon.azurewebsites.net/$route");
+            dynamic var1 = HttpRequest.requestCrossOrigin("tcc-api-mon.azurewebsites.net/$route/$formattedQuery");
             print(var1);
             return var1;
         }else{
-            return ApiRequests.get(route,queryParameters);
+            return ApiRequests.get("$route/$formattedQuery",queryParameters);
         }
     }
 
