@@ -172,7 +172,7 @@ class _CardPageState extends State<CardPage> {
           }
           print("Geocoding completed");
         }else{
-          print("request invalid: "+apiResponse.statusCode.toString());
+          print("request invalid: ${apiResponse.statusCode}");
           setState(() {
             LocationHandler.locationAvaliable=false;
           });
@@ -220,6 +220,7 @@ class _CardPageState extends State<CardPage> {
 
   bool fetchFirst=false;
   _fetch_card_data({bool refresh=false}) async{
+    print('fetching card data?');
     if(refresh){
       setState(() {
         LocationHandler.geocode_json.clear();
@@ -232,6 +233,7 @@ class _CardPageState extends State<CardPage> {
       setState((){failureMessage="Problema no apontamento da região";menuLoaded=1;});
       return;
     }
+    print("location data obtained");
     print("Obtendo cards");
     Map<String,dynamic>? apiRequestsQuery;
     if(LocationHandler.locationAvaliable){
@@ -412,9 +414,11 @@ class _CardPageState extends State<CardPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox.square(
-                    child: LoadingFailed(message: failureMessage,),
-                    dimension: 150,
+                  TextButton(onPressed: ()=>_fetch_card_data(refresh: true), child:
+                    SizedBox.square(
+                      dimension: 150,
+                      child: LoadingFailed(message: failureMessage,),
+                    )
                   )
                 ],
               ):
