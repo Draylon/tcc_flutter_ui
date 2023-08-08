@@ -224,10 +224,6 @@ class LocationHandler{
     if(_isp_ongoing==true) return Future.error("ongoing request");
     _isp_ongoing=true;
     try{
-      //perform initial CORS check
-      ApiRequests.get("api/cringe",{}).then((value) => {
-        print(value)
-      });
 
       if(_response_isp_data.isEmpty) {
         final Map<String,String> _qParams = <String,String>{
