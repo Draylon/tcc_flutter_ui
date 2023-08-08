@@ -1,6 +1,5 @@
 
 import 'dart:convert';
-import 'dart:html';
 
 import 'package:file/src/interface/file.dart';
 import 'package:flutter/foundation.dart' as Foundation;
