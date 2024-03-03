@@ -1,4 +1,4 @@
-package com.example.ui;
+package com.stonks.ui;
 
 import io.flutter.embedding.android.FlutterActivity;
 

@@ -62,7 +62,7 @@ class ExibitCardLoader{
             icon: _loadimg(value["icon"]),
             db_id: value["_id"],
             description: value["description"],
-            blurShadowHash: bhp.pick(),
+            blurShadowHash: bhp.pick(), // tag_mongo_replace v2 || cards_data_retrieve.blurhash salvo
             action: () async {
               if(key=="suggestions") return;
               await Navigator.push(context,

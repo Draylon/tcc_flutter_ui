@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
@@ -11,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../api/call.dart';
+import '../../pages/paging_fragments/map.dart';
 
 class LocationHandler{
 
@@ -292,6 +294,169 @@ class LocationHandler{
     //inject default cards?
   }
 
+  //================================================
+  //================================================
+
+  static manual_location_data(context,State state) async {
+    LatLng? result = await Navigator.push(context, MaterialPageRoute(
+      builder: (BuildContext context) => MapFragment(mode: MapFragmentMode.LOCATIONPICKER,),
+      fullscreenDialog: true,)
+    );
+    result!=null?
+    LocationHandler.defineLocationManually(LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude}))
+        :Scaffold.of(context).showSnackBar(const SnackBar(content: Text("Cancelled"),duration: Duration(seconds: 3),));
+
+    await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+      if (apiResponse.statusCode == 200) {
+        String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
+
+        try{
+          LocationHandler.geocode_json = json.decode(apiResponseBody);
+        }on Exception catch(e){
+          print("internal error:");
+          print(e);
+          state.setState(() {
+            LocationHandler.locationAvaliable=false;
+          });
+        }
+        print("Geocoding completed");
+      }else{
+        print("request invalid: "+apiResponse.statusCode.toString());
+        state.setState(() {
+          LocationHandler.locationAvaliable=false;
+        });
+      }
+      //return true;
+    },onError: (e){
+      print("major error:");
+      print(e);
+      state.setState(() {
+        LocationHandler.locationAvaliable=false;
+      });
+    });
+
+    state.setState(() {
+      LocationHandler.uiCityName=LocationHandler.geocode_json['county'];
+      LocationHandler.manually_set = true;
+      LocationHandler.locationAvaliable=true;
+    });
+  }
+
+  static fetch_location_data(State state,{bool precision=false}) async{
+    if(LocationHandler.manually_set){
+      state.setState(() {
+        LocationHandler.locationAvaliable=false;
+        LocationHandler.geocode_json.clear();
+      });
+    }
+    LocationHandler.manually_set = false;
+
+    // check permission
+    print("check permission");
+
+    if(!precision) {
+      await LocationHandler.checkGPSPermission().then((value) {
+        state.setState(() {
+          LocationHandler.locationAvaliable = value == PermissionStatus.granted;
+        });
+      }, onError: (e) {
+        print("Error on GPS permission");
+        print(e);
+      });
+    }else {
+      await LocationHandler.requestGPSPrecision().then((value) {
+        state.setState(() {
+          LocationHandler.locationAvaliable = value == PermissionStatus.granted;
+        });
+      });
+    }
+
+    //retrieve coordinates
+    //LocationData? curr_location;
+    if(LocationHandler.locationAvaliable){
+      print("retrieve coordinates");
+      await LocationHandler.updateGlobalGPS(prompt: false).then((value) {
+        //_curr_location=value;
+      },onError: (e){
+        state.setState(() {
+          LocationHandler.locationAvaliable = false;
+        });
+        print("Error on GPS Location retrieval");print(e);
+      });
+      /*setState(() {
+        _curr_location==null?LocationHandler.locationAvaliable=false:null;
+      });*/
+
+    }
+    await geocode_update(state);
+  }
+
+  static geocode_update(State state) async {
+    String whoisParams;
+    //retrieve geocoding
+    //_last_location?.latitude!=curr_location?.latitude &&
+    //_last_location?.longitude!=curr_location?.longitude
+    if(LocationHandler.locationAvaliable && LocationHandler.geocode_json.isEmpty){
+      print("retrieve geocoding");
+      await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+        if (apiResponse.statusCode == 200) {
+          String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
+          try{
+            LocationHandler.geocode_json = json.decode(apiResponseBody);
+          }on Exception catch(e){
+            print("internal error:");
+            print(e);
+            state.setState(() {
+              LocationHandler.locationAvaliable=false;
+            });
+          }
+          print("Geocoding completed");
+        }else{
+          print("request invalid: ${apiResponse.statusCode}");
+          state.setState(() {
+            LocationHandler.locationAvaliable=false;
+          });
+        }
+        //return true;
+      },onError: (e){
+        print("major error:");
+        print(e);
+        state.setState(() {
+          LocationHandler.locationAvaliable=false;
+        });
+      });
+    }else{
+      print("skipping geocoding");
+    }
+    //==============================
+
+    if(LocationHandler.locationAvaliable){
+      whoisParams='ip,success,type';
+    }else{
+      whoisParams='ip,success,type,country,city,latitude,longitude';
+    }
+
+    if(LocationHandler.whois_json.isEmpty) {
+      await LocationHandler.cached_isp_data(whoisParams).then((whoisResponse) {
+        print("whois cached response set to:");
+        print(whoisResponse);
+        LocationHandler.whois_json = whoisResponse;
+      }, onError: (e) {
+        print("Error on whois fetch:");
+        print(e);
+        //state.setState((){failureMessage="Error on whois fetch";menuLoaded=1;});
+        //return false;
+      });
+    }else{
+      print("skipping whois phase");
+    }
+
+    if(LocationHandler.locationAvaliable) {
+      if(LocationHandler.geocode_json.isNotEmpty) state.setState(() {LocationHandler.uiCityName=LocationHandler.geocode_json['county'];});
+    } else {
+      if(LocationHandler.whois_json.isNotEmpty) state.setState(() {LocationHandler.uiCityName=LocationHandler.whois_json['city'];});
+    }
+  }
 }
 
 
