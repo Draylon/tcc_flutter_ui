@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ui/api/call.dart';
 import 'package:ui/pages/HelpPage.dart';
 import 'package:ui/pages/SearchPage.dart';
+import 'package:ui/pages/addNewDevice.dart';
 import 'package:ui/pages/map_paging.dart';
 import 'package:ui/pages/paging_fragments/map.dart';
 import 'package:ui/shared/components/exibit_card.dart';
@@ -20,6 +21,8 @@ import 'package:location/location.dart';
 
 import '../shared/components/LoadingFailed.dart';
 import 'package:latlong2/latlong.dart';
+
+import 'components/PickBluetoothDevice.dart';
 
 class CardPage extends StatefulWidget {
   CardPage({Key? key, required this.title}) : super(key: key);
@@ -35,6 +38,7 @@ class _CardPageState extends State<CardPage> {
   @override
   void initState() {
     super.initState();
+    return;
 
     //Set intro to done/true
     SharedPreferences.getInstance().then((prefs) => {
@@ -57,166 +61,7 @@ class _CardPageState extends State<CardPage> {
   //bool locationAvaliable=false;
   //bool LocationHandler.manually_set = false;
 
-  _manual_location_data(context) async {
-      LatLng? result = await Navigator.push(context, MaterialPageRoute(
-        builder: (BuildContext context) => MapFragment(mode: MapFragmentMode.LOCATIONPICKER,),
-        fullscreenDialog: true,)
-      );
-      result!=null?
-      LocationHandler.defineLocationManually(LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude}))
-          :Scaffold.of(context).showSnackBar(const SnackBar(content: Text("Cancelled"),duration: Duration(seconds: 3),));
 
-      await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
-        if (apiResponse.statusCode == 200) {
-          String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
-
-          try{
-            LocationHandler.geocode_json = json.decode(apiResponseBody);
-          }on Exception catch(e){
-            print("internal error:");
-            print(e);
-            setState(() {
-              LocationHandler.locationAvaliable=false;
-            });
-          }
-          print("Geocoding completed");
-        }else{
-          print("request invalid: "+apiResponse.statusCode.toString());
-          setState(() {
-            LocationHandler.locationAvaliable=false;
-          });
-        }
-        //return true;
-      },onError: (e){
-        print("major error:");
-        print(e);
-        setState(() {
-          LocationHandler.locationAvaliable=false;
-        });
-      });
-
-      setState(() {
-        LocationHandler.uiCityName=LocationHandler.geocode_json['county'];
-        LocationHandler.manually_set = true;
-        LocationHandler.locationAvaliable=true;
-      });
-  }
-
-  _fetch_location_data({bool precision=false}) async{
-    if(LocationHandler.manually_set){
-      setState(() {
-        LocationHandler.locationAvaliable=false;
-        LocationHandler.geocode_json.clear();
-      });
-    }
-    LocationHandler.manually_set = false;
-
-    // check permission
-    print("check permission");
-
-    if(!precision) {
-      await LocationHandler.checkGPSPermission().then((value) {
-        setState(() {
-          LocationHandler.locationAvaliable = value == PermissionStatus.granted;
-        });
-      }, onError: (e) {
-        print("Error on GPS permission");
-        print(e);
-      });
-    }else {
-      await LocationHandler.requestGPSPrecision().then((value) {
-        setState(() {
-          LocationHandler.locationAvaliable = value == PermissionStatus.granted;
-        });
-      });
-    }
-
-    //retrieve coordinates
-    //LocationData? curr_location;
-    if(LocationHandler.locationAvaliable){
-      print("retrieve coordinates");
-      await LocationHandler.updateGlobalGPS(prompt: false).then((value) {
-        //_curr_location=value;
-      },onError: (e){
-        setState(() {
-          LocationHandler.locationAvaliable = false;
-        });
-        print("Error on GPS Location retrieval");print(e);
-      });
-      /*setState(() {
-        _curr_location==null?LocationHandler.locationAvaliable=false:null;
-      });*/
-
-    }
-    await _geocode_update();
-  }
-
-  _geocode_update() async {
-    String whoisParams;
-    //retrieve geocoding
-    //_last_location?.latitude!=curr_location?.latitude &&
-    //_last_location?.longitude!=curr_location?.longitude
-    if(LocationHandler.locationAvaliable && LocationHandler.geocode_json.isEmpty){
-      print("retrieve geocoding");
-      await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
-        if (apiResponse.statusCode == 200) {
-          String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
-          try{
-            LocationHandler.geocode_json = json.decode(apiResponseBody);
-          }on Exception catch(e){
-            print("internal error:");
-            print(e);
-            setState(() {
-              LocationHandler.locationAvaliable=false;
-            });
-          }
-          print("Geocoding completed");
-        }else{
-          print("request invalid: ${apiResponse.statusCode}");
-          setState(() {
-            LocationHandler.locationAvaliable=false;
-          });
-        }
-        //return true;
-      },onError: (e){
-        print("major error:");
-        print(e);
-        setState(() {
-          LocationHandler.locationAvaliable=false;
-        });
-      });
-    }else{
-      print("skipping geocoding");
-    }
-    //==============================
-
-    if(LocationHandler.locationAvaliable){
-      whoisParams='ip,success,type';
-    }else{
-      whoisParams='ip,success,type,country,city,latitude,longitude';
-    }
-
-    if(LocationHandler.whois_json.isEmpty) {
-      await LocationHandler.cached_isp_data(whoisParams).then((whoisResponse) {
-        LocationHandler.whois_json = whoisResponse;
-        return true;
-      }, onError: (e) {
-        print("Error on whois fetch:");
-        print(e);
-        //setState((){failureMessage="Error on whois fetch";menuLoaded=1;});
-        //return false;
-      });
-    }else{
-      print("skipping whois phase");
-    }
-
-    if(LocationHandler.locationAvaliable) setState(() {
-      LocationHandler.uiCityName=LocationHandler.geocode_json['county'];
-    });
-    else setState(() {
-      LocationHandler.uiCityName=LocationHandler.whois_json['city'];
-    });
-  }
 
   bool fetchFirst=false;
   _fetch_card_data({bool refresh=false}) async{
@@ -225,8 +70,9 @@ class _CardPageState extends State<CardPage> {
       setState(() {
         LocationHandler.geocode_json.clear();
       });
-      await _geocode_update();
-    } else if(!LocationHandler.locationAvaliable) await _fetch_location_data();
+
+      await LocationHandler.geocode_update(this);
+    } else if(!LocationHandler.locationAvaliable) await LocationHandler.fetch_location_data(this);
 
     Map<String,dynamic> azureJson={};
     if(LocationHandler.whois_json.isEmpty && !LocationHandler.locationAvaliable){
@@ -324,7 +170,7 @@ class _CardPageState extends State<CardPage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   const Expanded(
-                    child: Text("Aplicativo",style: TextStyle(
+                    child: Text("SmartJoinville",style: TextStyle(
                       fontSize: 26,
                     ),),
                   ),
@@ -336,9 +182,15 @@ class _CardPageState extends State<CardPage> {
                         foregroundColor: MaterialStateProperty.resolveWith((states) => Theme.of(context).primaryColorDark),
                         //side: MaterialStateProperty.resolveWith((states) => BorderSide(width: 1,color: Theme.of(context).primaryColorDark)),
                       ),
-                      onPressed: ()=> _fetch_location_data(precision: true),
+                      onPressed: () async => {
+                        LocationHandler.checkGPSPermission().then((value) async => {
+                          value==PermissionStatus.granted
+                          ? await LocationHandler.manual_location_data(ctx,this)
+                          : await LocationHandler.fetch_location_data(this,precision: true)
+                        })
+                      },
                       onLongPress:  () async {
-                          await _manual_location_data(ctx);
+                          await LocationHandler.manual_location_data(ctx,this);
                           _fetch_card_data();
                       },
                       child: Row(
@@ -441,10 +293,14 @@ class _CardPageState extends State<CardPage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton:FloatingActionButton(
         //onPressed: ()=>ScaffoldMessenger.of(context).showSnackBar(settingsMarker), // liberar logo settings <=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=<=
-        onPressed: () async => {
+        /*onPressed: () async => {
           await Navigator.push(context, MaterialPageRoute(builder: (BuildContext c) => SearchPage()))
+        },*/
+        onPressed: () async => {
+          // interactive map page
+          await Navigator.push(context, MaterialPageRoute(builder: (BuildContext c) => PageMap(title: "Mapa interativo")))
         },
-        child: const Icon(Icons.search),
+        child: const Icon(Icons.map_outlined),
       ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
@@ -476,13 +332,17 @@ class _CardPageState extends State<CardPage> {
                               return SettingsPage();
                             }))
                       }, icon: const Icon(Icons.settings,),),
-                      /*IconButton(onPressed: (){
+                      IconButton(onPressed: () async =>{
                           // add device to network?
-                      }, icon: const Icon(Icons.add,),),*/
-                      IconButton(onPressed: () async => {
+                        await Navigator.push(context,
+                            MaterialPageRoute(builder: (BuildContext c) {
+                              return AddNewDevice();
+                            })),
+                      }, icon: const Icon(Icons.add,),),
+                      /*IconButton(onPressed: () async => {
                           // interactive map page
                           await Navigator.push(context, MaterialPageRoute(builder: (BuildContext c) => PageMap(title: "Mapa interativo")))
-                      }, icon: const Icon(Icons.map_outlined,),),
+                      }, icon: const Icon(Icons.map_outlined,),),*/
                     ],
                   ),
                 ),

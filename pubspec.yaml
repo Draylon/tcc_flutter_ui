@@ -54,6 +54,11 @@ dependencies:
 
   fl_chart: ^0.60.0
   flutter_walkthrough_screen: ^2.0.2
+  flutter_automation: ^2.0.0
+  workmanager: ^0.5.0
+  flutter_local_notifications: ^9.9.1
+  mqtt_client: ^9.6.8
+  flutter_bluetooth_serial: ^0.4.0
 
 dev_dependencies:
   flutter_test:

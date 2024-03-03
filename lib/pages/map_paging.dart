@@ -59,15 +59,21 @@ class _PageMapState extends State<PageMap> {
               return SearchPage();
             }))
       },
-      child: const Text("Buscar Locais",
-        textAlign: TextAlign.center,
-        style:TextStyle(
-          color: Colors.white,
-          shadows: [Shadow(color: Colors.black45,blurRadius: 10)],
-          letterSpacing: 4,
-          fontSize: 30,
-          fontWeight: FontWeight.w300,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          Text("Buscar Locais",
+            textAlign: TextAlign.center,
+            style:TextStyle(
+              color: Colors.white,
+              shadows: [Shadow(color: Colors.black45,blurRadius: 10)],
+              letterSpacing: 4,
+              fontSize: 30,
+              fontWeight: FontWeight.w300,
+            ),
+          ),
+          Icon(Icons.search,size: 35,color: Colors.white,shadows: [Shadow(offset: Offset.zero,color: Colors.white,blurRadius: 1.0)],)
+        ],
       ),
     ),
     toolbarOpacity: 0.4,

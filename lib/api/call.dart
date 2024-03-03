@@ -1,6 +1,5 @@
 
 import 'dart:convert';
-import 'dart:html';
 import 'package:http/http.dart' as http;
 
 import 'package:file/src/interface/file.dart';
@@ -23,20 +22,20 @@ class ApiRequests{
 
         if(Foundation.kReleaseMode){
             return DefaultCacheManager().getSingleFile(
-                "https://tcc-api-mon.azurewebsites.net$route/$formattedQuery",
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    'Content-Type': 'application/json',
-                    'Accept': '*/*',
-                    "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
-                }
+                "http://192.168.43.35:8081$route/$formattedQuery",headers:{
+                "Access-Control-Allow-Origin": "*",
+                'Content-Type': 'application/json',
+                'Accept': '*/*',
+                "Access-Control-Allow-Credentials": "true", // Required for cookies, authorization headers with HTTPS
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE"
+            }
             );
         }else{
             print("Requesting on debug");
             return DefaultCacheManager().getSingleFile(
-                "192.168.0.4:8081$route/$formattedQuery",headers:{
+                "https://tcc-api-mon.azurewebsites.net$route/$formattedQuery",
+                headers: {
                     "Access-Control-Allow-Origin": "*",
                     'Content-Type': 'application/json',
                     'Accept': '*/*',
@@ -48,7 +47,7 @@ class ApiRequests{
         }
     }
 
-    static Future<Object> getCors(String route, [Map<String,dynamic>?queryParameters,]){
+    /*static Future<Object> getCors(String route, [Map<String,dynamic>?queryParameters,]){
         String formattedQuery = "";
         if(queryParameters!=null){
             if(queryParameters.isNotEmpty) formattedQuery="?";
@@ -63,13 +62,13 @@ class ApiRequests{
         }else{
             return ApiRequests.get("$route/$formattedQuery",queryParameters);
         }
-    }
+    }*/
 
 
     static Future<http.Response> get(String route, [Map<String,dynamic>?queryParameters,]){
         if(Foundation.kReleaseMode){
-            return http.get(Uri.https(
-                "tcc-api-mon.azurewebsites.net",route,queryParameters
+            return http.get(Uri.http(
+                "192.168.43.35:8081",route,queryParameters
             ),headers: {
                 "Access-Control-Allow-Origin": "*",
                 'Content-Type': 'application/json',
@@ -80,8 +79,8 @@ class ApiRequests{
             });
         }else{
             print("Requesting on debug");
-            return http.get(Uri.http(
-                "192.168.0.4:8081",route,queryParameters
+            return http.get(Uri.https(
+                "tcc-api-mon.azurewebsites.net",route,queryParameters
             ),headers: {
                 "Access-Control-Allow-Origin": "*",
                 'Content-Type': 'application/json',
@@ -96,16 +95,16 @@ class ApiRequests{
 
     static http.Response? sync_get(String route, [Map<String,dynamic>?queryParameters,]) {
         if(Foundation.kReleaseMode){
-            http.get(Uri.https(
-                "tcc-api-mon.azurewebsites.net",route,queryParameters
+            http.get(Uri.http(
+                "192.168.43.35:8081",route,queryParameters
             )).then((value) {
                 return value;
             });
         }else{
             print("Requesting on debug");
 
-            http.get(Uri.http(
-                "192.168.0.4:8081",route,queryParameters
+            http.get(Uri.https(
+                "tcc-api-mon.azurewebsites.net",route,queryParameters
             )).then((value) {
                 return value;
             });
@@ -115,16 +114,16 @@ class ApiRequests{
 
     static Future<http.Response> post(String route, [Map<String,dynamic>?queryParameters,Object? body,Encoding? enc]){
         if(Foundation.kReleaseMode){
+            return http.post(Uri.http(
+                "192.168.43.35:8081",route,queryParameters
+            ),body: body,encoding: enc);
+        }else{
+            print("Requesting on debug");
             return http.post(Uri.https(
                 "tcc-api-mon.azurewebsites.net",route,queryParameters
             ),
-            body: body,
-            encoding: enc);
-        }else{
-            print("Requesting on debug");
-            return http.post(Uri.http(
-                "192.168.0.4:8081",route,queryParameters
-            ),body: body,encoding: enc);
+                body: body,
+                encoding: enc);
         }
     }
 }

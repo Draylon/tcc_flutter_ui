@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -47,10 +48,10 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   MapController mapctrl = MapController();
   late Marker userMarker;
   List<Marker> markers = [];
-  List<LatLng> markersPointers = [];
+  Map< Map<String,dynamic>, LatLng>markerData={};
   int tappedMarker=-1;
 
-  Location _locationService = Location();
+  //Location _locationService = Location();
   LocationData? _userLocation;
   StreamSubscription<LocationData>? _locSub = null;
 
@@ -72,10 +73,9 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
   } //========================================================
 
 
-
   @override
   void initState() {
-    markersPointers.add(LatLng(-26.2542072,-48.8555393));
+    markerData[{"":""}]=LatLng(-26.2542072,-48.8555393);
     userMarker=Marker(
         width: 40,
         height: 40,
@@ -84,11 +84,9 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
         builder: (ctx) => GestureDetector(
           child: const Icon(Icons.location_on_outlined,size: 55,color: Colors.blueAccent,),
           onTap: ()=>{
-            print(ctx),
-            print(ctx.widget),
-            print(ctx.owner),
             ScaffoldMessenger.of(ctx).showSnackBar(markerClicked),
-            _animatedMapMove_index(0, 15)
+            _animatedMapMove(userMarker.point,15),
+            _clickMarker(ctx, {"":""}),
             //_animatedMapMove(LatLng(-26.2542072,-48.8555393), 15),
           },
         ) //builder: (ctx) => const FlutterLogo( textColor: Colors.blue,  key: ObjectKey(Colors.blue), ),
@@ -110,10 +108,82 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
     return !_isLoading ? _build_screen() : const Center(child: CircularProgressIndicator());
   }
 
+
+
+  void _clickMarker(BuildContext ctx,Map<String,dynamic> m) {
+    LatLng result = markerData[m]!;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Redefinir local"),
+          content: Text("Definir esse ponto como local atual?"),
+          actions: [
+            //cancelButton,
+            TextButton(
+              child: Text("Cancel"),
+              onPressed:  () {
+                Navigator.of(context).pop();
+                //Map<String,dynamic>
+              },
+            ),
+            //continueButton,
+            TextButton(
+              child: Text("Continue"),
+              onPressed:  () async =>{
+                LocationHandler.defineLocationManually(LocationData.fromMap({"latitude":result.latitude,"longitude":result.longitude})),
+                await ApiRequests.get('/api/v1/loc/${LocationHandler.locationData?.latitude}/${LocationHandler.locationData?.longitude}').then((apiResponse){
+                  if (apiResponse.statusCode == 200) {
+                    String apiResponseBody = apiResponse.body.replaceAll('null',"\"null\"");
+                    try{
+                      LocationHandler.geocode_json = json.decode(apiResponseBody);
+                    }on Exception catch(e){
+                      print("internal error:");
+                      print(e);
+                      setState(() {
+                        LocationHandler.locationAvaliable=false;
+                      });
+                    }
+                    print("Geocoding completed");
+                  }else{
+                    print("request invalid: "+apiResponse.statusCode.toString());
+                    setState(() {
+                      LocationHandler.locationAvaliable=false;
+                    });
+                  }
+                  //return true;
+                },onError: (e){
+                  print("major error:");
+                  print(e);
+                  setState(() {
+                    LocationHandler.locationAvaliable=false;
+                  });
+                }),
+                setState(() {
+                  LocationHandler.uiCityName=LocationHandler.geocode_json['county'];
+                  LocationHandler.manually_set = true;
+                  LocationHandler.locationAvaliable=true;
+                }),
+                Navigator.of(context).pop()
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+
+  void _printmapper(Map<String,dynamic> m){
+    print(m);
+  }
+
   void _parse_markers(String responseBody) {
     final List<Map<String,dynamic>>parsed = json.decode(responseBody).cast<Map<String, dynamic>>();
     parsed.forEach((e) {
-      markersPointers.add(LatLng(e["location"]["coordinates"][0],e["location"]["coordinates"][1]));
+      markerData[e]=(LatLng(e["location"]["coordinates"][0],e["location"]["coordinates"][1]));
       markers.add(
           Marker(
               width: 40,
@@ -123,15 +193,16 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
               builder: (ctx) => GestureDetector(
                 child: const Icon(Icons.location_on_outlined,size: 55,color: Colors.blueAccent,),
                 onTap: ()=>{
-                  tappedMarker = markers.length + 0,
                   ScaffoldMessenger.of(ctx).showSnackBar(markerClicked),
-                  _animatedMapMove_index(markers.length + 0, 15),
+                  _animatedMapMove_index(e, 15),
+                  _clickMarker(ctx, e),
                   //_animatedMapMove(LatLng(e["location"]["coordinates"][0],e["location"]["coordinates"][1]), 15)
                 },
               ),
               //builder: (ctx) => const FlutterLogo( textColor: Colors.blue,  key: ObjectKey(Colors.blue), ),
           )
       );
+
     });
 
     //return parsed.map<String>((json)=>String);
@@ -222,8 +293,6 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
                   print(result);
                   print("///");
                   Navigator.pop(context,result);
-
-
                 },
                 tooltip: 'Search',
                 child: Icon(Icons.search,size: 30,),
@@ -299,8 +368,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
           Container(
             width: 30,
             height: 30,
-            decoration: BoxDecoration(
-            ),
+            decoration: BoxDecoration(),
             child: const Icon(Icons.keyboard_arrow_up),
           ),
         ]
@@ -456,8 +524,8 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
     ],*/
   );
 
-  void _animatedMapMove_index(int i,double destZoom){
-    return _animatedMapMove(markersPointers[i], destZoom);
+  void _animatedMapMove_index(Map<String,dynamic> e,double destZoom){
+    return _animatedMapMove(markerData[e]!, destZoom);
   }
   void _animatedMapMove(LatLng destLocation, double destZoom) {
     final latTween = Tween<double>(
@@ -498,22 +566,22 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
       });
     });*/
 
-    LocationData? location;
+    /* LocationData? location; */
     bool serviceEnabled;
     bool serviceRequestResult;
 
     try {
       //bool b1 = await ph.Permission.location.request().isGranted;
       //if(!b1) return;
-      serviceEnabled = await _locationService.serviceEnabled();
+      serviceEnabled = await LocationHandler.locationService.serviceEnabled();
       if (serviceEnabled) {
-        PermissionStatus _permissionGranted = await _locationService.hasPermission();
+        PermissionStatus _permissionGranted = await LocationHandler.locationService.hasPermission();
         if (_permissionGranted != PermissionStatus.deniedForever){
-            final permission = await _locationService.requestPermission();
+            final permission = await LocationHandler.locationService.requestPermission();
             _permission = permission == PermissionStatus.granted;
             if (_permission) {
               //===========
-              await _locationService.changeSettings(
+              await LocationHandler.locationService.changeSettings(
                 accuracy: LocationAccuracy.balanced,
                 interval: 15000,
               );
@@ -522,16 +590,19 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
                 _locationStatus = Icons.my_location;
               });
 
-              location = await _locationService.getLocation();
-              _userLocation = location;
+              _userLocation = await LocationHandler.locationService.getLocation();
               userMarker.point.latitude =_userLocation!.latitude!;
               userMarker.point.longitude =_userLocation!.longitude!;
-              _locSub = _locationService.onLocationChanged.listen((LocationData result) async {
+              markerData[{"":""}]?.longitude=_userLocation!.longitude!;
+              markerData[{"":""}]?.latitude=_userLocation!.latitude!;
+              _locSub = LocationHandler.locationService.onLocationChanged.listen((LocationData result) async {
                 if (mounted) {
                   setState(() {
                     _userLocation = result;
                     userMarker.point.latitude =_userLocation!.latitude!;
                     userMarker.point.longitude =_userLocation!.longitude!;
+                    markerData[{"":""}]?.longitude=_userLocation!.longitude!;
+                    markerData[{"":""}]?.latitude=_userLocation!.latitude!;
                   });
                 }
               });
@@ -539,7 +610,7 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
             }
         }
       } else {
-        serviceRequestResult = await _locationService.requestService();
+        serviceRequestResult = await LocationHandler.locationService.requestService();
         if (serviceRequestResult) {
           _initLocationService();
           return;
@@ -558,7 +629,6 @@ class _MapFragState extends State<MapFragment> with AutomaticKeepAliveClientMixi
           _locationStatus = Icons.location_disabled_sharp;
         });
       }
-      location = null;
     } on Exception catch(e){
       print("unknown error");
       _serviceError = e as String?;

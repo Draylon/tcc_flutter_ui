@@ -228,14 +228,17 @@ class _ViewCardContentState extends State<ViewCardContent>{
         LoadingFailed(message: failureMessage,refreshOption: () {
           return _fetch_card_data();
         },)
-            :RefreshIndicator(
-          displacement: 80,
-          onRefresh:(){return _fetch_card_data();},
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(15,0,15,0),
-            itemCount: cardTopics.length(),
-            itemBuilder: (BuildContext context, int index) => cardTopics.item(index),
-          ),
+            :Padding(
+              padding: EdgeInsets.fromLTRB(0,0,0,80),
+              child: RefreshIndicator(
+                displacement: 80,
+                onRefresh:(){return _fetch_card_data();},
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(15,0,15,0),
+                  itemCount: cardTopics.length(),
+                  itemBuilder: (BuildContext context, int index) => cardTopics.item(index),
+                ),
+              ),
         ),
       ),
 

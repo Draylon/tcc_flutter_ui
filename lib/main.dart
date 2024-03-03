@@ -1,22 +1,77 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_walkthrough_screen/flutter_walkthrough_screen.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ui/pages/cardPage.dart';
 import 'package:ui/pages/map_paging.dart';
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:ui/shared/util/gradient_introScreen.dart';
+import 'package:ui/shared/util/notificationHelper.dart';
+import 'package:workmanager/workmanager.dart';
+
+//StreamSubscription? mqttStreamSubscription;
+//final mqttServerClient = MqttServerClient.withPort('test.mosquitto.org','user_hyqnap5637',1883,maxConnectionAttempts: 3);
+
+//WORKMANAGER
+//WORKMANAGER
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((String task,Map<String,dynamic>? inputData) async {
+    print("periodic task_?");
+    // initialise the plugin of flutterlocalnotifications.
+    FlutterLocalNotificationsPlugin flip = FlutterLocalNotificationsPlugin();
+
+    // app_icon needs to be a added as a drawable
+    // resource to the Android head project.
+    var android = const AndroidInitializationSettings('@mipmap/ic_launcher');
+    var IOS = const IOSInitializationSettings();
+
+    // initialise settings for both Android and iOS device.
+    var settings = InitializationSettings(android: android,iOS: IOS);
+    flip.initialize(settings);
+    await queryGeneralNotificationChannel(flip);
+    return Future.value(true);
+  });
+}
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await SharedPreferences.getInstance();
   await SharedPreferences.getInstance().then((prefs) => {
     doneIntro = prefs.getBool('intro_screen')
   });
+
+  //notifications worker
+  Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: true // FLAG
+
+  );
+  // Periodic task registration
+  Workmanager().registerPeriodicTask(
+    "2",
+    //This is the value that will be
+    // returned in the callbackDispatcher
+    "simplePeriodicTask",
+    frequency: const Duration(minutes: 15),
+    existingWorkPolicy: ExistingWorkPolicy.replace,
+    backoffPolicy: BackoffPolicy.linear,
+    constraints: Constraints(
+      networkType: NetworkType.connected,
+    )
+  );
+
   runApp(const MyApp());
 }
 
@@ -210,3 +265,5 @@ _gradientIntro() => GradientIntroScreen(
   selectedDotColor: Colors.orange,
   unSelectdDotColor: Colors.grey,
 );
+
+
